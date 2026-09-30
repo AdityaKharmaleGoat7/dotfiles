@@ -7,6 +7,46 @@ zshrc_path="$HOME/.zshrc"
 start_marker="# >>> dotfiles repository >>>"
 end_marker="# <<< dotfiles repository <<<"
 git_config="$repo_dir/git/config"
+starship_source="$repo_dir/starship/starship.toml"
+config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+starship_target="$config_home/starship.toml"
+starship_backup="$config_home/starship.toml.pre-dotfiles"
+
+install_starship() {
+    mkdir -p "$config_home"
+
+    if [ -L "$starship_target" ] && [ "$(readlink "$starship_target")" = "$starship_source" ]; then
+        printf 'Starship configuration is already installed.\n'
+        return
+    fi
+
+    if [ -e "$starship_backup" ] || [ -L "$starship_backup" ]; then
+        printf 'Cannot install Starship configuration: backup already exists at %s\n' "$starship_backup" >&2
+        exit 1
+    fi
+
+    if [ -e "$starship_target" ] || [ -L "$starship_target" ]; then
+        mv "$starship_target" "$starship_backup"
+        printf 'Backed up existing Starship configuration to %s\n' "$starship_backup"
+    fi
+
+    ln -s "$starship_source" "$starship_target"
+    printf 'Linked Starship configuration at %s\n' "$starship_target"
+}
+
+uninstall_starship() {
+    if [ -L "$starship_target" ] && [ "$(readlink "$starship_target")" = "$starship_source" ]; then
+        unlink "$starship_target"
+        printf 'Removed Starship configuration link at %s\n' "$starship_target"
+
+        if [ -e "$starship_backup" ] || [ -L "$starship_backup" ]; then
+            mv "$starship_backup" "$starship_target"
+            printf 'Restored previous Starship configuration.\n'
+        fi
+    else
+        printf 'No managed Starship configuration link found.\n'
+    fi
+}
 
 install_dotfiles() {
     touch "$zshrc_path"
@@ -28,6 +68,8 @@ install_dotfiles() {
         git config --global --add include.path "$git_config"
         printf 'Added Git include for %s\n' "$git_config"
     fi
+
+    install_starship
 }
 
 uninstall_dotfiles() {
@@ -46,6 +88,8 @@ uninstall_dotfiles() {
 
     git config --global --fixed-value --unset-all include.path "$git_config" 2>/dev/null || true
     printf 'Removed Git include for %s, if it was present.\n' "$git_config"
+
+    uninstall_starship
 }
 
 case "${1:-}" in

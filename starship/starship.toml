@@ -1,0 +1,4 @@
+# Do not display the active AWS profile or region in the prompt.
+[aws]
+disabled = true
+

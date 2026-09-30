@@ -22,6 +22,10 @@ The installer is safe to run again. It adds:
 
 - a marked block in `~/.zshrc` that loads `zsh/zshrc`
 - an `include.path` in `~/.gitconfig` that loads `git/config`
+- a link from `~/.config/starship.toml` to `starship/starship.toml`
+
+If a Starship configuration already exists, the installer preserves it as
+`~/.config/starship.toml.pre-dotfiles`. Uninstalling restores that file.
 
 ## Local and private settings
 
@@ -50,4 +54,3 @@ The files in this repository remain available.
 Create a directory for the tool, add its configuration, and update
 `install.sh` to link or include it. Never commit passwords, tokens, private
 keys, or cloud credentials.
-
