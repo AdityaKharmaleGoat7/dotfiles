@@ -1,0 +1,336 @@
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version 2.0
+
+$startMarker = "# >>> dotfiles repository >>>"
+$endMarker = "# <<< dotfiles repository <<<"
+$repoDir = $PSScriptRoot
+$profileSource = Join-Path $repoDir "powershell\profile.ps1"
+$gitConfig = Join-Path $repoDir "git\config"
+$btopSource = Join-Path $repoDir "btop\windows\btop.conf"
+
+function Write-Step([string]$Message) {
+    Write-Host "==> $Message" -ForegroundColor Cyan
+}
+
+function Get-CommandPath([string]$Name, [string[]]$Fallbacks = @()) {
+    $command = Get-Command $Name -ErrorAction SilentlyContinue
+    if ($null -ne $command) {
+        return $command.Source
+    }
+
+    foreach ($path in $Fallbacks) {
+        if (Test-Path -LiteralPath $path) {
+            return $path
+        }
+    }
+
+    return $null
+}
+
+function Install-WingetPackage([string]$Id, [string]$DisplayName) {
+    Write-Step "Installing $DisplayName"
+    & winget install --id $Id --exact --accept-package-agreements --accept-source-agreements --silent | Out-Host
+    if ($LASTEXITCODE -ne 0) {
+        throw "Winget could not install $DisplayName ($Id)."
+    }
+}
+
+function Test-VCRuntime {
+    $runtimeKey = "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64"
+    if (!(Test-Path $runtimeKey)) {
+        return $false
+    }
+
+    return (Get-ItemPropertyValue -Path $runtimeKey -Name Installed -ErrorAction SilentlyContinue) -eq 1
+}
+
+function Ensure-Packages {
+    if (!(Get-Command winget -ErrorAction SilentlyContinue)) {
+        throw "Winget is required. Install 'App Installer' from Microsoft Store, then run this script again."
+    }
+
+    $gitFallbacks = @("$env:ProgramFiles\Git\cmd\git.exe")
+    if (!(Get-CommandPath "git" $gitFallbacks)) {
+        Install-WingetPackage "Git.Git" "Git"
+    }
+
+    $pwshPath = "$env:ProgramFiles\PowerShell\7\pwsh.exe"
+    if (!(Test-Path -LiteralPath $pwshPath)) {
+        Install-WingetPackage "Microsoft.PowerShell" "PowerShell 7"
+    }
+
+    if (!(Get-CommandPath "starship" @("$env:LOCALAPPDATA\Microsoft\WinGet\Links\starship.exe"))) {
+        Install-WingetPackage "Starship.Starship" "Starship"
+    }
+
+    if (!(Test-VCRuntime)) {
+        Install-WingetPackage "Microsoft.VCRedist.2015+.x64" "Microsoft Visual C++ Runtime"
+    }
+
+    $scoopPath = Get-CommandPath "scoop" @("$HOME\scoop\shims\scoop.ps1")
+    if (!$scoopPath) {
+        Write-Step "Installing Scoop"
+        Invoke-RestMethod -Uri "https://get.scoop.sh" | Invoke-Expression | Out-Host
+        $scoopPath = Get-CommandPath "scoop" @("$HOME\scoop\shims\scoop.ps1")
+        if (!$scoopPath) {
+            throw "Scoop installation finished, but its command could not be found."
+        }
+    }
+
+    $btopPrefix = (& $scoopPath prefix btop-lhm 2>$null | Out-String).Trim()
+    if (!$btopPrefix) {
+        Write-Step "Installing GPU-enabled btop"
+        & $scoopPath install btop-lhm | Out-Host
+        if ($LASTEXITCODE -ne 0) {
+            throw "Scoop could not install btop-lhm."
+        }
+    }
+
+    return $scoopPath
+}
+
+function Get-PowerShellProfilePath {
+    $pwshPath = "$env:ProgramFiles\PowerShell\7\pwsh.exe"
+    if (!(Test-Path -LiteralPath $pwshPath)) {
+        throw "PowerShell 7 was not found at $pwshPath."
+    }
+
+    $profilePath = & $pwshPath -NoLogo -NoProfile -Command '$PROFILE.CurrentUserAllHosts'
+    if ($LASTEXITCODE -ne 0 -or !$profilePath) {
+        throw "Could not discover the PowerShell 7 profile path."
+    }
+
+    return $profilePath.Trim()
+}
+
+function Remove-ManagedBlock([string]$Path) {
+    if (!(Test-Path -LiteralPath $Path)) {
+        return $false
+    }
+
+    $content = [IO.File]::ReadAllText($Path)
+    $pattern = "(?ms)^$([regex]::Escape($startMarker))\r?\n.*?^$([regex]::Escape($endMarker))\r?\n?"
+    $updated = [regex]::Replace($content, $pattern, "")
+
+    if ($updated -eq $content) {
+        return $false
+    }
+
+    [IO.File]::WriteAllText($Path, $updated)
+    return $true
+}
+
+function Install-PowerShellProfile([string]$ProfilePath) {
+    $profileDirectory = Split-Path -Parent $ProfilePath
+    New-Item -ItemType Directory -Path $profileDirectory -Force | Out-Null
+    if (!(Test-Path -LiteralPath $ProfilePath)) {
+        New-Item -ItemType File -Path $ProfilePath -Force | Out-Null
+    }
+
+    [void](Remove-ManagedBlock $ProfilePath)
+    $escapedSource = $profileSource.Replace("'", "''")
+    $block = @(
+        $startMarker,
+        ". '$escapedSource'",
+        $endMarker
+    ) -join [Environment]::NewLine
+
+    $content = [IO.File]::ReadAllText($ProfilePath)
+    if ($content.Length -gt 0 -and !$content.EndsWith([Environment]::NewLine)) {
+        $content += [Environment]::NewLine
+    }
+
+    [IO.File]::WriteAllText($ProfilePath, $content + $block + [Environment]::NewLine)
+    Write-Host "Added dotfiles loader to $ProfilePath"
+}
+
+function Get-GitPath {
+    $gitPath = Get-CommandPath "git" @("$env:ProgramFiles\Git\cmd\git.exe")
+    if (!$gitPath) {
+        throw "Git was installed, but git.exe could not be found."
+    }
+    return $gitPath
+}
+
+function Install-GitConfig([string]$GitPath) {
+    $includes = @(& $GitPath config --global --get-all include.path 2>$null)
+    if ($includes -contains $gitConfig) {
+        Write-Host "Git configuration is already installed."
+        return
+    }
+
+    & $GitPath config --global --add include.path $gitConfig
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not add the shared Git configuration."
+    }
+    Write-Host "Added Git include for $gitConfig"
+}
+
+function Uninstall-GitConfig([string]$GitPath) {
+    & $GitPath config --global --fixed-value --unset-all include.path $gitConfig 2>$null
+    if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 5) {
+        throw "Could not remove the shared Git configuration."
+    }
+    Write-Host "Removed Git include for $gitConfig, if it was present."
+}
+
+function Get-ScoopRoot([string]$ScoopPath) {
+    if ($env:SCOOP) {
+        return $env:SCOOP
+    }
+
+    $configuredRoot = (& $ScoopPath config root_path 2>$null | Out-String).Trim()
+    if ($configuredRoot -and $configuredRoot -ne "null" -and [IO.Path]::IsPathRooted($configuredRoot)) {
+        return $configuredRoot
+    }
+
+    return (Join-Path $HOME "scoop")
+}
+
+function Remove-FileIfPresent([string]$Path) {
+    if (Test-Path -LiteralPath $Path) {
+        Remove-Item -LiteralPath $Path -Force
+    }
+}
+
+function Install-BtopConfig([string]$ScoopPath) {
+    $scoopRoot = Get-ScoopRoot $ScoopPath
+    $persistDirectory = Join-Path $scoopRoot "persist\btop-lhm"
+    $persistConfig = Join-Path $persistDirectory "btop.conf"
+    $backupConfig = Join-Path $persistDirectory "btop.conf.pre-dotfiles"
+    $markerPath = Join-Path $persistDirectory ".dotfiles-managed"
+    $appDirectory = (& $ScoopPath prefix btop-lhm | Out-String).Trim()
+    $appConfig = Join-Path $appDirectory "btop.conf"
+
+    New-Item -ItemType Directory -Path $persistDirectory -Force | Out-Null
+
+    if (Test-Path -LiteralPath $markerPath) {
+        $managedState = @([IO.File]::ReadAllLines($markerPath))
+        $managedSource = if ($managedState.Count -gt 0) { $managedState[0] } else { "" }
+        $managedMode = if ($managedState.Count -gt 1) { $managedState[1] } else { "" }
+        if ($managedSource -eq $btopSource -and (Test-Path -LiteralPath $persistConfig)) {
+            if ($managedMode -eq "copy") {
+                Copy-Item -LiteralPath $btopSource -Destination $persistConfig -Force
+                Write-Host "Synchronized the managed btop configuration copy."
+            }
+            else {
+                Write-Host "btop configuration is already installed."
+            }
+            Remove-FileIfPresent $appConfig
+            New-Item -ItemType HardLink -Path $appConfig -Target $persistConfig | Out-Null
+            return
+        }
+        Remove-FileIfPresent $appConfig
+        Remove-FileIfPresent $persistConfig
+    }
+    elseif (Test-Path -LiteralPath $backupConfig) {
+        throw "Cannot install btop configuration: backup already exists at $backupConfig"
+    }
+    elseif (Test-Path -LiteralPath $persistConfig) {
+        Move-Item -LiteralPath $persistConfig -Destination $backupConfig
+        Remove-FileIfPresent $appConfig
+        Write-Host "Backed up existing btop configuration to $backupConfig"
+    }
+
+    $linkMode = "hardlink"
+    try {
+        New-Item -ItemType HardLink -Path $persistConfig -Target $btopSource -ErrorAction Stop | Out-Null
+    }
+    catch {
+        Copy-Item -LiteralPath $btopSource -Destination $persistConfig -Force
+        $linkMode = "copy"
+        Write-Warning "The repository and Scoop are on different drives. btop is using a managed copy; rerun install.ps1 after changing the tracked Windows config."
+    }
+
+    Remove-FileIfPresent $appConfig
+    New-Item -ItemType HardLink -Path $appConfig -Target $persistConfig | Out-Null
+    [IO.File]::WriteAllText($markerPath, $btopSource + [Environment]::NewLine + $linkMode)
+    Write-Host "Installed btop configuration at $persistConfig"
+}
+
+function Uninstall-BtopConfig([string]$ScoopPath) {
+    $scoopRoot = Get-ScoopRoot $ScoopPath
+    $persistDirectory = Join-Path $scoopRoot "persist\btop-lhm"
+    $persistConfig = Join-Path $persistDirectory "btop.conf"
+    $backupConfig = Join-Path $persistDirectory "btop.conf.pre-dotfiles"
+    $markerPath = Join-Path $persistDirectory ".dotfiles-managed"
+
+    if (!(Test-Path -LiteralPath $markerPath)) {
+        Write-Host "No managed btop configuration found."
+        return
+    }
+
+    $appDirectory = (& $ScoopPath prefix btop-lhm 2>$null | Out-String).Trim()
+    $appConfig = if ($appDirectory) { Join-Path $appDirectory "btop.conf" } else { $null }
+    if ($appConfig) {
+        Remove-FileIfPresent $appConfig
+    }
+    Remove-FileIfPresent $persistConfig
+    Remove-FileIfPresent $markerPath
+
+    if (Test-Path -LiteralPath $backupConfig) {
+        Move-Item -LiteralPath $backupConfig -Destination $persistConfig
+        if ($appConfig) {
+            New-Item -ItemType HardLink -Path $appConfig -Target $persistConfig | Out-Null
+        }
+        Write-Host "Restored previous btop configuration."
+    }
+    else {
+        Write-Host "Removed managed btop configuration."
+    }
+}
+
+function Install-Dotfiles {
+    if ($env:OS -ne "Windows_NT") {
+        throw "install.ps1 is for Windows. Run ./install.sh on macOS."
+    }
+
+    $scoopPath = Ensure-Packages
+    $profilePath = Get-PowerShellProfilePath
+    Install-PowerShellProfile $profilePath
+    Install-GitConfig (Get-GitPath)
+    Install-BtopConfig $scoopPath
+
+    Write-Host ""
+    Write-Host "Windows dotfiles installed. Open a new PowerShell 7 terminal." -ForegroundColor Green
+    Write-Host "Run Windows Terminal as Administrator when you want btop GPU data."
+}
+
+function Uninstall-Dotfiles {
+    if ($env:OS -ne "Windows_NT") {
+        throw "install.ps1 is for Windows. Run ./install.sh --uninstall on macOS."
+    }
+
+    $profilePath = Get-PowerShellProfilePath
+    if (Remove-ManagedBlock $profilePath) {
+        Write-Host "Removed dotfiles loader from $profilePath"
+    }
+    else {
+        Write-Host "No dotfiles loader found in $profilePath"
+    }
+
+    $gitPath = Get-GitPath
+    Uninstall-GitConfig $gitPath
+
+    $scoopPath = Get-CommandPath "scoop" @("$HOME\scoop\shims\scoop.ps1")
+    if ($scoopPath) {
+        Uninstall-BtopConfig $scoopPath
+    }
+    else {
+        Write-Host "Scoop is not installed; no btop configuration was removed."
+    }
+
+    Write-Host ""
+    Write-Host "Windows dotfiles uninstalled. Open a new PowerShell terminal." -ForegroundColor Green
+}
+
+if ($args.Count -eq 0) {
+    Install-Dotfiles
+}
+elseif ($args.Count -eq 1 -and ($args[0] -eq "--uninstall" -or $args[0] -eq "-Uninstall")) {
+    Uninstall-Dotfiles
+}
+else {
+    [Console]::Error.WriteLine("Usage: .\install.ps1 [--uninstall]")
+    exit 2
+}

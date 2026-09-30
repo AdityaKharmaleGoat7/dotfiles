@@ -1,10 +1,10 @@
 # Dotfiles
 
-This repository keeps shared terminal and Git settings in one place. The setup
-script connects them to the configuration already in your home directory; it
-does not replace your existing `.zshrc` or `.gitconfig`.
+This repository keeps shared terminal and Git settings in one place on macOS
+and Windows. The setup scripts connect them to the configuration already in
+your home directory without replacing unrelated settings.
 
-## Install
+## macOS
 
 Review the files first, then run:
 
@@ -72,6 +72,52 @@ git config --global user.email "you@example.com"
 This removes the shell block and Git include, restores previous Starship and
 btop configurations when backups exist, and leaves this repository and
 Homebrew packages in place.
+
+## Windows
+
+Use Windows 10 or 11 and run the installer from PowerShell as a normal user:
+
+```powershell
+.\install.ps1
+```
+
+If Windows blocks local PowerShell scripts, use the one-time execution-policy
+override:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+The installer uses Winget to install Git, PowerShell 7, Starship, and the
+Microsoft Visual C++ runtime. It installs Scoop when needed and uses it to
+install the GPU-enabled `btop-lhm` package. Running the installer again is
+safe.
+
+Open a new PowerShell 7 terminal after installation. The `g`, `gs`, `ll`, and
+`la` commands and the shared Starship prompt work from every directory. Run
+Windows Terminal as Administrator before starting `btop` when you want GPU and
+temperature information; `btop-lhm` requires elevation for those sensors.
+
+Windows btop uses its own tracked configuration because btop4win has a
+different format from the macOS version. Scoop persists this configuration
+across package upgrades. If the repository and Scoop are on the same drive,
+btop changes update the tracked file directly. Otherwise, rerun
+`.\install.ps1` after editing `btop/windows/btop.conf` to synchronize it.
+
+Machine-specific or private PowerShell settings belong in:
+
+```text
+~/.config/powershell/profile.local.ps1
+```
+
+Uninstall the managed Windows configuration with:
+
+```powershell
+.\install.ps1 --uninstall
+```
+
+This removes the managed PowerShell block and Git include and restores any
+previous btop configuration. Installed packages remain available.
 
 ## Adding another tool
 
