@@ -1,0 +1,14 @@
+[init]
+	defaultBranch = main
+[color]
+	ui = auto
+[fetch]
+	prune = true
+[push]
+	autoSetupRemote = true
+[alias]
+	st = status --short --branch
+	co = checkout
+	br = branch
+	lg = log --graph --decorate --oneline --all
+

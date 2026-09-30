@@ -1,0 +1,30 @@
+# Shared interactive Zsh settings.
+
+# Personal or machine-specific values belong in this untracked file.
+[[ -r "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
+
+# Add common user-installed command locations when they exist.
+typeset -U path PATH
+[[ -d "$HOME/.local/bin" ]] && path=("$HOME/.local/bin" $path)
+[[ -d /opt/homebrew/bin ]] && path=(/opt/homebrew/bin /opt/homebrew/sbin $path)
+
+# Keep useful history across terminal sessions.
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=10000
+SAVEHIST=10000
+setopt APPEND_HISTORY
+setopt SHARE_HISTORY
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+
+# Completion and familiar command-line editing.
+autoload -Uz compinit && compinit
+bindkey -e
+
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ll='ls -lah'
+alias la='ls -A'
+alias g='git'
+alias gs='git status --short --branch'
+
