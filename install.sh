@@ -12,6 +12,10 @@ config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
 starship_target="$config_home/starship.toml"
 starship_backup="$config_home/starship.toml.pre-dotfiles"
 starship_init='eval "$(starship init zsh)"'
+btop_source="$repo_dir/btop/btop.conf"
+btop_config_dir="$config_home/btop"
+btop_target="$btop_config_dir/btop.conf"
+btop_backup="$btop_config_dir/btop.conf.pre-dotfiles"
 
 remove_standalone_starship_init() {
     if grep -Fxq "$starship_init" "$zshrc_path"; then
@@ -58,6 +62,46 @@ uninstall_starship() {
     fi
 }
 
+install_btop() {
+    mkdir -p "$btop_config_dir"
+
+    if [ -L "$btop_target" ] && [ "$(readlink "$btop_target")" = "$btop_source" ]; then
+        printf 'btop configuration is already installed.\n'
+        return
+    fi
+
+    if [ -e "$btop_backup" ] || [ -L "$btop_backup" ]; then
+        printf 'Cannot install btop configuration: backup already exists at %s\n' "$btop_backup" >&2
+        exit 1
+    fi
+
+    if [ -e "$btop_target" ] || [ -L "$btop_target" ]; then
+        mv "$btop_target" "$btop_backup"
+        printf 'Backed up existing btop configuration to %s\n' "$btop_backup"
+    fi
+
+    ln -s "$btop_source" "$btop_target"
+    printf 'Linked btop configuration at %s\n' "$btop_target"
+
+    if ! command -v btop >/dev/null 2>&1; then
+        printf 'btop is not installed. Run: brew bundle --file "%s/Brewfile"\n' "$repo_dir"
+    fi
+}
+
+uninstall_btop() {
+    if [ -L "$btop_target" ] && [ "$(readlink "$btop_target")" = "$btop_source" ]; then
+        unlink "$btop_target"
+        printf 'Removed btop configuration link at %s\n' "$btop_target"
+
+        if [ -e "$btop_backup" ] || [ -L "$btop_backup" ]; then
+            mv "$btop_backup" "$btop_target"
+            printf 'Restored previous btop configuration.\n'
+        fi
+    else
+        printf 'No managed btop configuration link found.\n'
+    fi
+}
+
 install_dotfiles() {
     touch "$zshrc_path"
     remove_standalone_starship_init
@@ -81,6 +125,7 @@ install_dotfiles() {
     fi
 
     install_starship
+    install_btop
 }
 
 uninstall_dotfiles() {
@@ -101,6 +146,7 @@ uninstall_dotfiles() {
     printf 'Removed Git include for %s, if it was present.\n' "$git_config"
 
     uninstall_starship
+    uninstall_btop
 }
 
 case "${1:-}" in

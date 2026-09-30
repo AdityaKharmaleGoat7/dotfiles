@@ -9,6 +9,7 @@ does not replace your existing `.zshrc` or `.gitconfig`.
 Review the files first, then run:
 
 ```sh
+brew bundle --file ./Brewfile
 ./install.sh
 ```
 
@@ -23,11 +24,28 @@ The installer is safe to run again. It adds:
 - a marked block in `~/.zshrc` that loads `zsh/zshrc`
 - an `include.path` in `~/.gitconfig` that loads `git/config`
 - a link from `~/.config/starship.toml` to `starship/starship.toml`
+- a link from `~/.config/btop/btop.conf` to `btop/btop.conf`
 
 Starship is started by the tracked Zsh configuration. The installer removes an
 equivalent standalone Starship startup line from `~/.zshrc` to prevent duplicate
 prompts. After uninstalling, reload Zsh with `exec zsh` to return to its normal
 prompt.
+
+## System monitoring
+
+Run the terminal resource monitor from anywhere:
+
+```sh
+btop
+```
+
+The tracked dashboard shows CPU, Apple GPU, memory, and process utilization.
+It refreshes every two seconds. Press `q` to exit. Settings changed inside btop
+are saved to the tracked configuration and can be committed with Git.
+
+On Apple M5 hardware, GPU utilization, power, and memory are supported. GPU
+temperature may display `0 °C` because of an upstream sensor compatibility
+issue.
 
 If a Starship configuration already exists, the installer preserves it as
 `~/.config/starship.toml.pre-dotfiles`. Uninstalling restores that file.
@@ -51,8 +69,9 @@ git config --global user.email "you@example.com"
 ./install.sh --uninstall
 ```
 
-This removes only the shell block and Git include created by the installer.
-The files in this repository remain available.
+This removes the shell block and Git include, restores previous Starship and
+btop configurations when backups exist, and leaves this repository and
+Homebrew packages in place.
 
 ## Adding another tool
 
