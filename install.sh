@@ -11,6 +11,16 @@ starship_source="$repo_dir/starship/starship.toml"
 config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
 starship_target="$config_home/starship.toml"
 starship_backup="$config_home/starship.toml.pre-dotfiles"
+starship_init='eval "$(starship init zsh)"'
+
+remove_standalone_starship_init() {
+    if grep -Fxq "$starship_init" "$zshrc_path"; then
+        temp_file=$(mktemp "${TMPDIR:-/tmp}/dotfiles-zshrc.XXXXXX")
+        grep -Fvx "$starship_init" "$zshrc_path" > "$temp_file" || true
+        mv "$temp_file" "$zshrc_path"
+        printf 'Moved Starship startup under dotfiles management.\n'
+    fi
+}
 
 install_starship() {
     mkdir -p "$config_home"
@@ -50,6 +60,7 @@ uninstall_starship() {
 
 install_dotfiles() {
     touch "$zshrc_path"
+    remove_standalone_starship_init
 
     if ! grep -Fq "$start_marker" "$zshrc_path"; then
         {

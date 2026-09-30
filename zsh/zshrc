@@ -28,3 +28,7 @@ alias la='ls -A'
 alias g='git'
 alias gs='git status --short --branch'
 
+# Start the Starship prompt only while these dotfiles are installed.
+if command -v starship >/dev/null 2>&1; then
+    eval "$(starship init zsh)"
+fi

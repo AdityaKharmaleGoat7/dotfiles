@@ -24,6 +24,11 @@ The installer is safe to run again. It adds:
 - an `include.path` in `~/.gitconfig` that loads `git/config`
 - a link from `~/.config/starship.toml` to `starship/starship.toml`
 
+Starship is started by the tracked Zsh configuration. The installer removes an
+equivalent standalone Starship startup line from `~/.zshrc` to prevent duplicate
+prompts. After uninstalling, reload Zsh with `exec zsh` to return to its normal
+prompt.
+
 If a Starship configuration already exists, the installer preserves it as
 `~/.config/starship.toml.pre-dotfiles`. Uninstalling restores that file.
 
