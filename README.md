@@ -189,3 +189,10 @@ Create a directory for the tool under `config/`, add its configuration, and
 update `install.sh` (and `install.ps1` for Windows-relevant tools) to link or
 include it. Never commit passwords, tokens, private keys, or cloud
 credentials.
+
+## Comments and documentation
+
+Code comments say only what's needed to edit that exact line — a non-obvious
+constraint, a workaround, a unit. Rationale, alternatives considered, and the
+history behind a decision belong in [`DECISIONS.md`](DECISIONS.md) instead,
+so the two don't drift out of sync with each other.
