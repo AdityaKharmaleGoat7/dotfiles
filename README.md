@@ -21,11 +21,11 @@ source ~/.zshrc
 
 The installer is safe to run again. It adds:
 
-- a marked block in `~/.zshrc` that loads `zsh/zshrc`
-- an `include.path` in `~/.gitconfig` that loads `git/config`
-- a link from `~/.config/starship.toml` to `starship/starship.toml`
-- a link from `~/.config/btop/btop.conf` to `btop/btop.conf`
-- a link from `~/.tmux.conf` to `tmux/tmux.conf`
+- a marked block in `~/.zshrc` that loads `config/zsh/zshrc`
+- an `include.path` in `~/.gitconfig` that loads `config/git/config`
+- a link from `~/.config/starship.toml` to `config/starship/starship.toml`
+- a link from `~/.config/btop/btop.conf` to `config/btop/btop.conf`
+- a link from `~/.tmux.conf` to `config/tmux/tmux.conf`
 
 Starship is started by the tracked Zsh configuration. The installer removes an
 equivalent standalone Starship startup line from `~/.zshrc` to prevent duplicate
@@ -115,7 +115,7 @@ Windows btop uses its own tracked configuration because btop4win has a
 different format from the macOS version. Scoop persists this configuration
 across package upgrades. If the repository and Scoop are on the same drive,
 btop changes update the tracked file directly. Otherwise, rerun
-`.\install.ps1` after editing `btop/windows/btop.conf` to synchronize it.
+`.\install.ps1` after editing `config/btop/windows/btop.conf` to synchronize it.
 
 Machine-specific or private PowerShell settings belong in:
 
@@ -134,6 +134,7 @@ previous btop configuration. Installed packages remain available.
 
 ## Adding another tool
 
-Create a directory for the tool, add its configuration, and update
-`install.sh` to link or include it. Never commit passwords, tokens, private
-keys, or cloud credentials.
+Create a directory for the tool under `config/`, add its configuration, and
+update `install.sh` (and `install.ps1` for Windows-relevant tools) to link or
+include it. Never commit passwords, tokens, private keys, or cloud
+credentials.

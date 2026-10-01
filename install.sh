@@ -6,17 +6,17 @@ repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 zshrc_path="$HOME/.zshrc"
 start_marker="# >>> dotfiles repository >>>"
 end_marker="# <<< dotfiles repository <<<"
-git_config="$repo_dir/git/config"
-starship_source="$repo_dir/starship/starship.toml"
+git_config="$repo_dir/config/git/config"
+starship_source="$repo_dir/config/starship/starship.toml"
 config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
 starship_target="$config_home/starship.toml"
 starship_backup="$config_home/starship.toml.pre-dotfiles"
 starship_init='eval "$(starship init zsh)"'
-btop_source="$repo_dir/btop/btop.conf"
+btop_source="$repo_dir/config/btop/btop.conf"
 btop_config_dir="$config_home/btop"
 btop_target="$btop_config_dir/btop.conf"
 btop_backup="$btop_config_dir/btop.conf.pre-dotfiles"
-tmux_source="$repo_dir/tmux/tmux.conf"
+tmux_source="$repo_dir/config/tmux/tmux.conf"
 tmux_target="$HOME/.tmux.conf"
 tmux_backup="$HOME/.tmux.conf.pre-dotfiles"
 
@@ -150,7 +150,7 @@ install_dotfiles() {
     if ! grep -Fq "$start_marker" "$zshrc_path"; then
         {
             printf '\n%s\n' "$start_marker"
-            printf '[ -r "%s/zsh/zshrc" ] && source "%s/zsh/zshrc"\n' "$repo_dir" "$repo_dir"
+            printf '[ -r "%s/config/zsh/zshrc" ] && source "%s/config/zsh/zshrc"\n' "$repo_dir" "$repo_dir"
             printf '%s\n' "$end_marker"
         } >> "$zshrc_path"
         printf 'Added dotfiles loader to %s\n' "$zshrc_path"

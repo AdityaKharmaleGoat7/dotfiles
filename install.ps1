@@ -4,9 +4,9 @@ Set-StrictMode -Version 2.0
 $startMarker = "# >>> dotfiles repository >>>"
 $endMarker = "# <<< dotfiles repository <<<"
 $repoDir = $PSScriptRoot
-$profileSource = Join-Path $repoDir "powershell\profile.ps1"
-$gitConfig = Join-Path $repoDir "git\config"
-$btopSource = Join-Path $repoDir "btop\windows\btop.conf"
+$profileSource = Join-Path $repoDir "config\powershell\profile.ps1"
+$gitConfig = Join-Path $repoDir "config\git\config"
+$btopSource = Join-Path $repoDir "config\btop\windows\btop.conf"
 
 function Write-Step([string]$Message) {
     Write-Host "==> $Message" -ForegroundColor Cyan

@@ -1,7 +1,7 @@
 # Shared PowerShell settings managed by the dotfiles repository.
 
-$dotfilesRoot = Split-Path -Parent $PSScriptRoot
-$env:STARSHIP_CONFIG = Join-Path $dotfilesRoot "starship\starship.toml"
+$configRoot = Split-Path -Parent $PSScriptRoot
+$env:STARSHIP_CONFIG = Join-Path $configRoot "starship\starship.toml"
 
 Set-Alias -Name g -Value git -Scope Global
 
