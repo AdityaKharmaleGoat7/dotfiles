@@ -37,6 +37,10 @@ equivalent standalone Starship startup line from `~/.zshrc` to prevent
 duplicate prompts. After uninstalling, reload Zsh with `exec zsh` to return to
 its normal prompt.
 
+`uv`, the Python package and project manager, is installed by
+`brew bundle --file ./Brewfile`. The tracked Zsh configuration registers its
+completions when `uv` is on the `PATH`.
+
 If a Starship configuration already existed, the installer preserved it as
 `~/.config/starship.toml.pre-dotfiles`. Uninstalling restores that file.
 
@@ -99,13 +103,14 @@ override:
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-The installer uses Winget to install Git, PowerShell 7, Starship, and the
+The installer uses Winget to install Git, PowerShell 7, Starship, uv, and the
 Microsoft Visual C++ runtime. It installs Scoop when needed and uses it to
 install the GPU-enabled `btop-lhm` package. Running the installer again is
 safe.
 
 Open a new PowerShell 7 terminal after installation. The `g`, `gs`, `ll`, and
-`la` commands and the shared Starship prompt work from every directory.
+`la` commands, the shared Starship prompt, and `uv` shell completions work
+from every directory.
 
 ### What it manages
 

@@ -69,6 +69,10 @@ function Ensure-Packages {
         Install-WingetPackage "Starship.Starship" "Starship"
     }
 
+    if (!(Get-CommandPath "uv" @("$HOME\.local\bin\uv.exe"))) {
+        Install-WingetPackage "astral-sh.uv" "uv"
+    }
+
     if (!(Test-VCRuntime)) {
         Install-WingetPackage "Microsoft.VCRedist.2015+.x64" "Microsoft Visual C++ Runtime"
     }

@@ -21,6 +21,10 @@ setopt HIST_IGNORE_SPACE
 autoload -Uz compinit && compinit
 bindkey -e
 
+if command -v uv >/dev/null 2>&1; then
+    eval "$(uv generate-shell-completion zsh)"
+fi
+
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ll='ls -lah'
