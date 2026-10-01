@@ -77,6 +77,10 @@ function Ensure-Packages {
         Install-WingetPackage "astral-sh.uv" "uv"
     }
 
+    if (!(Get-CommandPath "lazygit" @("$env:LOCALAPPDATA\Microsoft\WinGet\Packages\JesseDuffield.lazygit_Microsoft.Winget.Source_8wekyb3d8bbwe\lazygit.exe"))) {
+        Install-WingetPackage "JesseDuffield.lazygit" "LazyGit"
+    }
+
     if (!(Test-VCRuntime)) {
         Install-WingetPackage "Microsoft.VCRedist.2015+.x64" "Microsoft Visual C++ Runtime"
     }

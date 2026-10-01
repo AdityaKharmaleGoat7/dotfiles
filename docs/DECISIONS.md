@@ -28,6 +28,21 @@ When no custom Scoop root is configured, `scoop config root_path` prints
 not stderr. `2>$null` alone didn't suppress it, so it leaked into the
 installer's output even though the fallback path logic was already correct.
 
+## LazyGit's winget fallback path points at `WinGet\Packages\`, not `WinGet\Links\`
+
+`Get-CommandPath` needs a fallback path for tools winget just installed,
+since the current process's `PATH` doesn't pick up winget's update until a
+new shell starts (the same reason `starship` and `uv` already have
+fallbacks). Starship's fallback is
+`WinGet\Links\starship.exe`, so `JesseDuffield.lazygit`'s fallback was
+written the same way at first. Installing it for real and checking showed
+`WinGet\Links\` is empty on this machine; winget actually extracted it to
+`WinGet\Packages\JesseDuffield.lazygit_Microsoft.Winget.Source_8wekyb3d8bbwe\lazygit.exe`.
+The fallback now points there instead. (The `8wekyb3d8bbwe` suffix is a fixed
+Microsoft publisher ID winget's own source packaging uses, not something
+random per machine or per install, so this exact path is expected to be
+stable.)
+
 ## tmux is not installed or linked by `install.ps1`
 
 tmux has no official native Windows build. Managing it from the Windows

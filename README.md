@@ -127,10 +127,10 @@ override:
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-The installer uses Winget to install Git, PowerShell 7, Starship, uv, and the
-Microsoft Visual C++ runtime. It installs Scoop when needed and uses it to
-install the GPU-enabled `btop-lhm` package. Running the installer again is
-safe.
+The installer uses Winget to install Git, PowerShell 7, Starship, uv, LazyGit,
+and the Microsoft Visual C++ runtime. It installs Scoop when needed and uses
+it to install the GPU-enabled `btop-lhm` package. Running the installer again
+is safe.
 
 Open a new PowerShell 7 terminal after installation. The `g`, `gs`, `ll`, and
 `la` commands, the shared Starship prompt, and `uv` shell completions work
@@ -232,6 +232,18 @@ platform:
 git config --global user.name "Your Name"
 git config --global user.email "you@example.com"
 ```
+
+## Git aliases
+
+The tracked `config/git/config` adds a few short aliases on top of plain Git,
+usable as `git <alias>` or, with the shared `g` shortcut from the Zsh or
+PowerShell configuration, `g <alias>`:
+
+- `g lg` — a one-line, graphed, all-branches log
+- `g ui` — opens LazyGit in the current repository
+
+LazyGit is installed by `brew bundle --file ./Brewfile` on macOS/Linux and by
+`install.ps1` on Windows.
 
 ## Adding another tool
 
