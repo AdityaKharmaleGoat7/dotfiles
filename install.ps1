@@ -44,6 +44,10 @@ function Test-VCRuntime {
     return (Get-ItemPropertyValue -Path $runtimeKey -Name Installed -ErrorAction SilentlyContinue) -eq 1
 }
 
+function Get-PwshPath {
+    return Get-CommandPath "pwsh" @("$env:ProgramFiles\PowerShell\7\pwsh.exe")
+}
+
 function Ensure-Packages {
     if (!(Get-Command winget -ErrorAction SilentlyContinue)) {
         throw "Winget is required. Install 'App Installer' from Microsoft Store, then run this script again."
@@ -54,9 +58,11 @@ function Ensure-Packages {
         Install-WingetPackage "Git.Git" "Git"
     }
 
-    $pwshPath = "$env:ProgramFiles\PowerShell\7\pwsh.exe"
-    if (!(Test-Path -LiteralPath $pwshPath)) {
+    if (!(Get-PwshPath)) {
         Install-WingetPackage "Microsoft.PowerShell" "PowerShell 7"
+        if (!(Get-PwshPath)) {
+            throw "PowerShell 7 installation finished, but pwsh.exe could not be found."
+        }
     }
 
     if (!(Get-CommandPath "starship" @("$env:LOCALAPPDATA\Microsoft\WinGet\Links\starship.exe"))) {
@@ -90,9 +96,9 @@ function Ensure-Packages {
 }
 
 function Get-PowerShellProfilePath {
-    $pwshPath = "$env:ProgramFiles\PowerShell\7\pwsh.exe"
-    if (!(Test-Path -LiteralPath $pwshPath)) {
-        throw "PowerShell 7 was not found at $pwshPath."
+    $pwshPath = Get-PwshPath
+    if (!$pwshPath) {
+        throw "PowerShell 7 was not found."
     }
 
     $profilePath = & $pwshPath -NoLogo -NoProfile -Command '$PROFILE.CurrentUserAllHosts'
@@ -179,7 +185,7 @@ function Get-ScoopRoot([string]$ScoopPath) {
         return $env:SCOOP
     }
 
-    $configuredRoot = (& $ScoopPath config root_path 2>$null | Out-String).Trim()
+    $configuredRoot = (& $ScoopPath config root_path 2>$null 6>$null | Out-String).Trim()
     if ($configuredRoot -and $configuredRoot -ne "null" -and [IO.Path]::IsPathRooted($configuredRoot)) {
         return $configuredRoot
     }
