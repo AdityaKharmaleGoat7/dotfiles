@@ -1,2 +1,3 @@
 brew "btop"
+brew "tmux"
 

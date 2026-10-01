@@ -25,6 +25,7 @@ The installer is safe to run again. It adds:
 - an `include.path` in `~/.gitconfig` that loads `git/config`
 - a link from `~/.config/starship.toml` to `starship/starship.toml`
 - a link from `~/.config/btop/btop.conf` to `btop/btop.conf`
+- a link from `~/.tmux.conf` to `tmux/tmux.conf`
 
 Starship is started by the tracked Zsh configuration. The installer removes an
 equivalent standalone Starship startup line from `~/.zshrc` to prevent duplicate
@@ -50,11 +51,23 @@ issue.
 If a Starship configuration already exists, the installer preserves it as
 `~/.config/starship.toml.pre-dotfiles`. Uninstalling restores that file.
 
+## Terminal multiplexer
+
+The tracked `tmux.conf` enables mouse support, vi-style copy mode, and
+`|`/`-` splits, and reloads with the `r` key after the prefix. Install tmux
+with `brew bundle --file ./Brewfile`, then start a session with:
+
+```sh
+tmux
+```
+
+tmux is a macOS/Linux tool and is not installed or linked by `install.ps1`.
+
 ## Local and private settings
 
-Put machine-specific or private shell settings in `~/.zshrc.local`. For
-example, API keys and work-only paths belong there rather than in this
-repository.
+Put machine-specific or private shell settings in `~/.zshrc.local`, and
+machine-specific tmux settings in `~/.tmux.conf.local`. For example, API keys
+and work-only paths belong there rather than in this repository.
 
 Keep your Git name and email in the existing global config:
 
@@ -69,9 +82,9 @@ git config --global user.email "you@example.com"
 ./install.sh --uninstall
 ```
 
-This removes the shell block and Git include, restores previous Starship and
-btop configurations when backups exist, and leaves this repository and
-Homebrew packages in place.
+This removes the shell block and Git include, restores previous Starship,
+btop, and tmux configurations when backups exist, and leaves this repository
+and Homebrew packages in place.
 
 ## Windows
 

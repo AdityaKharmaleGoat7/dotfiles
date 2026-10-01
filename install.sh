@@ -16,6 +16,9 @@ btop_source="$repo_dir/btop/btop.conf"
 btop_config_dir="$config_home/btop"
 btop_target="$btop_config_dir/btop.conf"
 btop_backup="$btop_config_dir/btop.conf.pre-dotfiles"
+tmux_source="$repo_dir/tmux/tmux.conf"
+tmux_target="$HOME/.tmux.conf"
+tmux_backup="$HOME/.tmux.conf.pre-dotfiles"
 
 remove_standalone_starship_init() {
     if grep -Fxq "$starship_init" "$zshrc_path"; then
@@ -102,6 +105,44 @@ uninstall_btop() {
     fi
 }
 
+install_tmux() {
+    if [ -L "$tmux_target" ] && [ "$(readlink "$tmux_target")" = "$tmux_source" ]; then
+        printf 'tmux configuration is already installed.\n'
+        return
+    fi
+
+    if [ -e "$tmux_backup" ] || [ -L "$tmux_backup" ]; then
+        printf 'Cannot install tmux configuration: backup already exists at %s\n' "$tmux_backup" >&2
+        exit 1
+    fi
+
+    if [ -e "$tmux_target" ] || [ -L "$tmux_target" ]; then
+        mv "$tmux_target" "$tmux_backup"
+        printf 'Backed up existing tmux configuration to %s\n' "$tmux_backup"
+    fi
+
+    ln -s "$tmux_source" "$tmux_target"
+    printf 'Linked tmux configuration at %s\n' "$tmux_target"
+
+    if ! command -v tmux >/dev/null 2>&1; then
+        printf 'tmux is not installed. Run: brew bundle --file "%s/Brewfile"\n' "$repo_dir"
+    fi
+}
+
+uninstall_tmux() {
+    if [ -L "$tmux_target" ] && [ "$(readlink "$tmux_target")" = "$tmux_source" ]; then
+        unlink "$tmux_target"
+        printf 'Removed tmux configuration link at %s\n' "$tmux_target"
+
+        if [ -e "$tmux_backup" ] || [ -L "$tmux_backup" ]; then
+            mv "$tmux_backup" "$tmux_target"
+            printf 'Restored previous tmux configuration.\n'
+        fi
+    else
+        printf 'No managed tmux configuration link found.\n'
+    fi
+}
+
 install_dotfiles() {
     touch "$zshrc_path"
     remove_standalone_starship_init
@@ -126,6 +167,7 @@ install_dotfiles() {
 
     install_starship
     install_btop
+    install_tmux
 }
 
 uninstall_dotfiles() {
@@ -147,6 +189,7 @@ uninstall_dotfiles() {
 
     uninstall_starship
     uninstall_btop
+    uninstall_tmux
 }
 
 case "${1:-}" in
