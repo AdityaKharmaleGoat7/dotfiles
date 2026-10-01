@@ -43,6 +43,30 @@ Microsoft publisher ID winget's own source packaging uses, not something
 random per machine or per install, so this exact path is expected to be
 stable.)
 
+## `config/lazygit/config.yml` forces `gui.language: en`
+
+LazyGit's default `gui.language: auto` picks a UI language from the OS
+locale. On Windows that's `GetUserDefaultLocaleName`, i.e. the Region/format
+setting, not the display language; a machine with an English display
+language but a Japanese Region setting (as on the machine this was found on)
+gets a Japanese LazyGit UI with no indication why. Forcing `en` makes the
+language the same on every machine regardless of that machine's locale, same
+reasoning as pinning any other environment-dependent default.
+
+## LazyGit's config path differs by OS, unlike every other tool tracked here
+
+Every other tool in `config/` resolves to the same kind of path on
+Linux/WSL and macOS (`$XDG_CONFIG_HOME` or `~/.config`), so `install.sh`
+could use one `config_home` variable for all of them. LazyGit's own docs
+specify different defaults per OS: `~/.config/lazygit` on Linux,
+`~/Library/Application Support/lazygit` on macOS (overridable by setting
+`XDG_CONFIG_HOME`, which LazyGit does honor on macOS, just not by default),
+and `%LOCALAPPDATA%\lazygit` on Windows, confirmed by running
+`lazygit --print-config-dir` on this repo's Windows machine, since it's easy
+to assume `%APPDATA%` (Roaming) by analogy with Zed and get it wrong.
+`install.sh` branches on `uname` (and checks `XDG_CONFIG_HOME` first) only
+for this one tool; `install.ps1` just hardcodes `$env:LOCALAPPDATA`.
+
 ## tmux is not installed or linked by `install.ps1`
 
 tmux has no official native Windows build. Managing it from the Windows
