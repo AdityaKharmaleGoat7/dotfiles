@@ -1,7 +1,7 @@
 # Decisions
 
 Rationale for non-obvious choices in this repo. Code comments say only what's
-needed to edit that line; the "why" — context, alternatives, history — lives
+needed to edit that line; the "why" (context, alternatives, history) lives
 here instead, so comments and reasoning don't drift out of sync.
 
 ## `config/<tool>` layout instead of one top-level folder per tool
@@ -18,7 +18,7 @@ caps the root at a fixed set of entries; new tools add a subfolder inside
 installed via winget, `pwsh` resolved through the `WindowsApps` alias instead,
 so the hardcoded check missed it, winget was asked to install an
 already-current package, and the script threw. `Get-PwshPath` now checks
-`Get-Command` first, with the hardcoded path only as a fallback — the same
+`Get-Command` first, with the hardcoded path only as a fallback, the same
 pattern already used for `git` and `starship`.
 
 ## Scoop's `config root_path` output needs `6>$null`, not just `2>$null`
@@ -40,5 +40,5 @@ install and link.
 
 It's a scratch space for cloning other people's repos to read for reference
 (e.g. a colleague's dotfiles for comparison). A submodule or committed copy
-would version repos we don't maintain and bloat this repo for no benefit —
-nothing in `third_party/` is meant to ship with these dotfiles.
+would version repos we don't maintain and bloat this repo for no benefit.
+Nothing in `third_party/` is meant to ship with these dotfiles.

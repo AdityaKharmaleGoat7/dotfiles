@@ -192,7 +192,8 @@ credentials.
 
 ## Comments and documentation
 
-Code comments say only what's needed to edit that exact line — a non-obvious
-constraint, a workaround, a unit. Rationale, alternatives considered, and the
-history behind a decision belong in [`DECISIONS.md`](DECISIONS.md) instead,
-so the two don't drift out of sync with each other.
+Code comments say only what's needed to edit that exact line, such as a
+non-obvious constraint, a workaround, or a unit. Rationale, alternatives
+considered, and the history behind a decision belong in
+[`docs/DECISIONS.md`](docs/DECISIONS.md) instead, so the two don't drift out
+of sync with each other.
