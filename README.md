@@ -132,9 +132,23 @@ and the Microsoft Visual C++ runtime. It installs Scoop when needed and uses
 it to install the GPU-enabled `btop-lhm` package. Running the installer again
 is safe.
 
-Open a new PowerShell 7 terminal after installation. The `g`, `gs`, `ll`, and
-`la` commands, the shared Starship prompt, and `uv` shell completions work
-from every directory.
+Open a new PowerShell 7 (`pwsh`) terminal after installation, not the
+default blue Windows PowerShell (`powershell.exe`); they have separate
+profile files, and the installer only wires its loader into PowerShell 7's.
+If `g`, `gs`, `ll`, or `la` come back as "not recognized" and the prompt
+doesn't have the Starship styling, you're in Windows PowerShell, not
+PowerShell 7, no matter what the window titlebar says. Launch `pwsh`
+explicitly, or set it as your terminal's default profile, to get the `g`,
+`gs`, `ll`, and `la` commands, the shared Starship prompt, and `uv` shell
+completions everywhere.
+
+A new tab or pane isn't enough to pick up a `PATH` change from Winget
+(for example, right after it installs `lazygit`): tabs are child processes
+of whatever terminal app is already running, which cached its environment
+when that app itself launched, before Winget updated the registry. Fully
+quit the terminal application (not just the tab or window) and relaunch it;
+a brand-new top-level process reads the current `PATH`, a new tab in an
+already-running one does not.
 
 ### What it manages
 
@@ -157,9 +171,15 @@ Run the terminal resource monitor from anywhere:
 btop
 ```
 
-Run Windows Terminal as Administrator before starting `btop` when you want
-GPU and temperature information; `btop-lhm` requires elevation for those
-sensors.
+`btop-lhm`, the GPU-enabled package t his installer uses, requires
+administrator rights to run at all, not only for GPU and temperature
+sensors; Scoop's own manifest for it says so directly. Launch it from a
+terminal already running as Administrator. If Scoop's shim instead tries to
+elevate `btop` for you and fails with `Shim: Unable to create elevated
+process: error 1223`, that's Windows declining the elevation request itself
+(UAC prompt dismissed, or your account can't elevate at all, e.g. no local
+admin rights or an organization policy blocks it) rather than anything this
+repository controls.
 
 Windows btop uses its own tracked configuration because btop4win has a
 different format from the macOS version. Scoop persists this configuration

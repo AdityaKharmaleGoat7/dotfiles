@@ -459,7 +459,7 @@ function Install-Dotfiles {
 
     Write-Host ""
     Write-Host "Windows dotfiles installed. Open a new PowerShell 7 terminal." -ForegroundColor Green
-    Write-Host "Run Windows Terminal as Administrator when you want btop GPU data."
+    Write-Host "btop requires Administrator rights to run at all; launch it from an elevated terminal."
 }
 
 function Uninstall-Dotfiles {
