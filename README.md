@@ -37,10 +37,9 @@ The installer is safe to run again.
 - a link from LazyGit's config directory (`~/.config/lazygit` on Linux,
   `~/Library/Application Support/lazygit` on macOS) to `config/lazygit/config.yml`
 
-Starship is started by the tracked Zsh configuration. The installer removes an
-equivalent standalone Starship startup line from `~/.zshrc` to prevent
-duplicate prompts. After uninstalling, reload Zsh with `exec zsh` to return to
-its normal prompt.
+Starship is started by the tracked Zsh configuration, so the installer removes
+any standalone Starship startup line already in `~/.zshrc` to avoid duplicate
+prompts. After uninstalling, run `exec zsh` to restore the normal prompt.
 
 `uv`, the Python package and project manager, is installed by
 `brew bundle --file ./Brewfile`. The tracked Zsh configuration registers its
@@ -61,9 +60,8 @@ The tracked dashboard shows CPU, Apple GPU, memory, and process utilization.
 It refreshes every two seconds. Press `q` to exit. Settings changed inside
 btop are saved to the tracked configuration and can be committed with Git.
 
-On Apple M5 hardware, GPU utilization, power, and memory are supported. GPU
-temperature may display `0 °C` because of an upstream sensor compatibility
-issue.
+On Apple M5 hardware, GPU utilization, power, and memory are supported; GPU
+temperature may show `0 °C` due to an upstream sensor compatibility issue.
 
 ### Terminal multiplexer
 
@@ -79,11 +77,10 @@ tmux
 
 `~/.config/zed/settings.json` is generated, not linked: the installer merges
 the tracked `config/zed/settings.json` with `config/zed/settings.local.json`
-(untracked, see "Local and private settings" below) and writes the result,
-marked with a "do not edit directly" comment on its first line. Rerun
-`./install.sh` after editing either source file to regenerate it; editing the
-generated file directly in `~/.config/zed/` (including through Zed's own
-settings UI) only lasts until the next install.
+(see "Local and private settings" below) and writes the result, marked "do
+not edit directly" on its first line. Rerun `./install.sh` after editing
+either source file; edits made directly in `~/.config/zed/` (including
+through Zed's own settings UI) only last until the next install.
 
 `config/zed/AGENTS.md` (Zed's global commit-message instructions) has no
 local-override need, so it's linked into `~/.config/zed/` directly; changes
@@ -134,23 +131,19 @@ and the Microsoft Visual C++ runtime. It installs Scoop when needed and uses
 it to install the GPU-enabled `btop-lhm` package. Running the installer again
 is safe.
 
-Open a new PowerShell 7 (`pwsh`) terminal after installation, not the
-default blue Windows PowerShell (`powershell.exe`); they have separate
-profile files, and the installer only wires its loader into PowerShell 7's.
-If `g`, `gs`, `ll`, or `la` come back as "not recognized" and the prompt
-doesn't have the Starship styling, you're in Windows PowerShell, not
-PowerShell 7, no matter what the window titlebar says. Launch `pwsh`
-explicitly, or set it as your terminal's default profile, to get the `g`,
-`gs`, `ll`, and `la` commands, the shared Starship prompt, and `uv` shell
-completions everywhere.
+Open a new PowerShell 7 (`pwsh`) terminal after installing, not the default
+blue Windows PowerShell (`powershell.exe`); they have separate profile
+files, and the installer only wires its loader into PowerShell 7's. If `g`,
+`gs`, `ll`, or `la` come back as "not recognized" and the prompt has no
+Starship styling, you're in Windows PowerShell regardless of the window
+titlebar. Launch `pwsh` explicitly, or set it as your terminal's default
+profile.
 
-A new tab or pane isn't enough to pick up a `PATH` change from Winget
-(for example, right after it installs `lazygit`): tabs are child processes
-of whatever terminal app is already running, which cached its environment
-when that app itself launched, before Winget updated the registry. Fully
-quit the terminal application (not just the tab or window) and relaunch it;
-a brand-new top-level process reads the current `PATH`, a new tab in an
-already-running one does not.
+A new tab or pane won't pick up a `PATH` change from Winget (for example,
+right after it installs `lazygit`), because it inherits the environment the
+terminal app cached at launch, before Winget updated the registry. Fully
+quit and relaunch the terminal application itself, not just the tab, to pick
+up the new `PATH`.
 
 ### What it manages
 
@@ -175,22 +168,17 @@ Run the terminal resource monitor from anywhere:
 btop
 ```
 
-`btop-lhm`, the GPU-enabled package t his installer uses, requires
-administrator rights to run at all, not only for GPU and temperature
-sensors; Scoop's own manifest for it says so directly. Launch it from a
-terminal already running as Administrator. If Scoop's shim instead tries to
-elevate `btop` for you and fails with `Shim: Unable to create elevated
-process: error 1223`, that's Windows declining the elevation request itself
-(UAC prompt dismissed, or your account can't elevate at all, e.g. no local
-admin rights or an organization policy blocks it) rather than anything this
-repository controls.
+`btop-lhm`, the GPU-enabled package this installer uses, requires
+administrator rights to run at all, not just for GPU and temperature
+sensors. Launch it from a terminal already running as Administrator. A
+`Shim: Unable to create elevated process: error 1223` means Windows itself
+declined the elevation request (UAC dismissed, or your account can't
+elevate), not an issue with this repository.
 
-Windows btop uses its own tracked configuration because btop4win has a
-different format from the macOS version. Scoop persists this configuration
-across package upgrades. If the repository and Scoop are on the same drive,
-btop changes update the tracked file directly. Otherwise, rerun
-`.\install.ps1` after editing `config/btop/windows/btop.conf` to synchronize
-it.
+Windows btop uses its own tracked config because btop4win's format differs
+from the macOS version. If the repository and Scoop are on the same drive,
+btop changes update the tracked file directly; otherwise rerun
+`.\install.ps1` after editing `config/btop/windows/btop.conf` to sync it.
 
 ### Terminal multiplexer
 
@@ -212,11 +200,10 @@ If you just want pane splitting without tmux, Windows Terminal's native panes
 
 `%APPDATA%\Zed\settings.json` is generated, not linked: the installer merges
 the tracked `config/zed/settings.json` with `config/zed/settings.local.json`
-(untracked, see "Local and private settings" below) and writes the result,
-marked with a "do not edit directly" comment on its first line. Rerun
-`.\install.ps1` after editing either source file to regenerate it; editing the
-generated file directly in `%APPDATA%\Zed\` (including through Zed's own
-settings UI) only lasts until the next install.
+(see "Local and private settings" below) and writes the result, marked "do
+not edit directly" on its first line. Rerun `.\install.ps1` after editing
+either source file; edits made directly in `%APPDATA%\Zed\` (including
+through Zed's own settings UI) only last until the next install.
 
 `config/zed/AGENTS.md` (Zed's global commit-message instructions) has no
 local-override need, so it's hardlinked into `%APPDATA%\Zed\` directly. If
@@ -263,18 +250,16 @@ The tracked `config/git/config` adds a few short aliases on top of plain Git,
 usable as `git <alias>` or, with the shared `g` shortcut from the Zsh or
 PowerShell configuration, `g <alias>`:
 
-- `g lg` — a one-line, graphed, all-branches log
-- `g ui` — opens LazyGit in the current repository
+- `g lg`: a one-line, graphed, all-branches log
+- `g ui`: opens LazyGit in the current repository
 
 LazyGit is installed by `brew bundle --file ./Brewfile` on macOS/Linux and by
 `install.ps1` on Windows. The tracked `config/lazygit/config.yml` forces its
-UI to English (`gui.language: en`); by default LazyGit auto-detects the
-language from the OS locale (on Windows, the Region/format setting, not the
-display language), which can pick an unexpected language on a machine
-configured for a different region. It's linked (symlinked on macOS/Linux,
-hardlinked on Windows) into LazyGit's own config directory: `~/.config/lazygit`
-on Linux, `~/Library/Application Support/lazygit` on macOS (both overridable
-with `XDG_CONFIG_HOME`), and `%LOCALAPPDATA%\lazygit` on Windows.
+UI to English; see [`docs/DECISIONS.md`](docs/DECISIONS.md) for why. It's
+linked (symlinked on macOS/Linux, hardlinked on Windows) into LazyGit's own
+config directory: `~/.config/lazygit` on Linux, `~/Library/Application
+Support/lazygit` on macOS (both overridable with `XDG_CONFIG_HOME`), and
+`%LOCALAPPDATA%\lazygit` on Windows.
 
 ## Adding another tool
 
