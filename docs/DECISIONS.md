@@ -75,6 +75,23 @@ supported there. Windows users who want tmux run it inside WSL instead
 (documented in the README); `install.sh` on WSL/macOS/Linux handles the real
 install and link.
 
+## Codex's AGENTS.md goes to `~/.codex`, not `$XDG_CONFIG_HOME`
+
+Unlike every other tool tracked here (Starship, btop, Zed, LazyGit on
+Linux/macOS), Codex CLI doesn't put its config under
+`$XDG_CONFIG_HOME`/`~/.config`; it uses a plain `~/.codex` directory on
+every OS, the same style as `~/.ssh` or `~/.tmux.conf`. Confirmed by
+inspecting an existing `~/.codex` on a machine with Codex CLI actually
+installed: it already contained a `skills/.system/` folder with Codex's
+own marker file at that exact path, with no `$XDG_CONFIG_HOME` override
+set. `install.sh` and `install.ps1` both link straight into `$HOME/.codex`
+(`%USERPROFILE%\.codex` on Windows) rather than reusing `config_home`.
+
+`config.toml`, however, mixes user settings with session state in the
+same file and has no comment-stripped-JSON-style merge tool here the way
+Zed's settings do; managing it would need a TOML merge mechanism this
+repo doesn't have yet, so it was left alone rather than guessed at.
+
 ## `install.ps1`'s Dust fallback path is discovered, not hardcoded
 
 Every other Winget-installed tool here (Starship, uv, LazyGit, eza) ends up

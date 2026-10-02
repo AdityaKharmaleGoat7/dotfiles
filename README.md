@@ -36,6 +36,7 @@ The installer is safe to run again.
 - a link from `~/.config/zed/AGENTS.md` to `config/zed/AGENTS.md`
 - a link from LazyGit's config directory (`~/.config/lazygit` on Linux,
   `~/Library/Application Support/lazygit` on macOS) to `config/lazygit/config.yml`
+- a link from `~/.codex/AGENTS.md` to `config/codex/AGENTS.md`
 
 Starship is started by the tracked Zsh configuration, so the installer removes
 any standalone Starship startup line already in `~/.zshrc` to avoid duplicate
@@ -159,6 +160,8 @@ up the new `PATH`.
   different drives) from `config/zed/AGENTS.md` into `%APPDATA%\Zed\`
 - a hardlink (or a managed copy, if on different drives) from
   `config/lazygit/config.yml` into `%LOCALAPPDATA%\lazygit\`
+- a hardlink (or a managed copy, if on different drives) from
+  `config/codex/AGENTS.md` into `%USERPROFILE%\.codex\`
 
 ### System monitoring
 

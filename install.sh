@@ -38,6 +38,10 @@ else
 fi
 lazygit_target="$lazygit_config_dir/config.yml"
 lazygit_backup="$lazygit_config_dir/config.yml.pre-dotfiles"
+codex_source="$repo_dir/config/codex/AGENTS.md"
+codex_dir="$HOME/.codex"
+codex_target="$codex_dir/AGENTS.md"
+codex_backup="$codex_dir/AGENTS.md.pre-dotfiles"
 
 remove_standalone_starship_init() {
     if grep -Fxq "$starship_init" "$zshrc_path"; then
@@ -285,6 +289,42 @@ uninstall_lazygit() {
     fi
 }
 
+install_codex() {
+    mkdir -p "$codex_dir"
+
+    if [ -L "$codex_target" ] && [ "$(readlink "$codex_target")" = "$codex_source" ]; then
+        printf 'Codex AGENTS.md is already installed.\n'
+        return
+    fi
+
+    if [ -e "$codex_backup" ] || [ -L "$codex_backup" ]; then
+        printf 'Cannot install Codex AGENTS.md: backup already exists at %s\n' "$codex_backup" >&2
+        exit 1
+    fi
+
+    if [ -e "$codex_target" ] || [ -L "$codex_target" ]; then
+        mv "$codex_target" "$codex_backup"
+        printf 'Backed up existing Codex AGENTS.md to %s\n' "$codex_backup"
+    fi
+
+    ln -s "$codex_source" "$codex_target"
+    printf 'Linked Codex AGENTS.md at %s\n' "$codex_target"
+}
+
+uninstall_codex() {
+    if [ -L "$codex_target" ] && [ "$(readlink "$codex_target")" = "$codex_source" ]; then
+        unlink "$codex_target"
+        printf 'Removed Codex AGENTS.md link at %s\n' "$codex_target"
+
+        if [ -e "$codex_backup" ] || [ -L "$codex_backup" ]; then
+            mv "$codex_backup" "$codex_target"
+            printf 'Restored previous Codex AGENTS.md.\n'
+        fi
+    else
+        printf 'No managed Codex AGENTS.md link found.\n'
+    fi
+}
+
 install_dotfiles() {
     touch "$zshrc_path"
     remove_standalone_starship_init
@@ -312,6 +352,7 @@ install_dotfiles() {
     install_tmux
     install_zed
     install_lazygit
+    install_codex
 }
 
 uninstall_dotfiles() {
@@ -336,6 +377,7 @@ uninstall_dotfiles() {
     uninstall_tmux
     uninstall_zed
     uninstall_lazygit
+    uninstall_codex
 }
 
 case "${1:-}" in
