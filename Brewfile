@@ -3,7 +3,7 @@ brew "dust"
 brew "eza"
 brew "jq"
 brew "lazygit"
+brew "starship"
 brew "tmux"
 brew "uv"
 cask "zed"
-

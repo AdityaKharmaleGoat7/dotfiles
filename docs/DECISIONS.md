@@ -159,3 +159,19 @@ It's a scratch space for cloning other people's repos to read for reference
 (e.g. a colleague's dotfiles for comparison). A submodule or committed copy
 would version repos we don't maintain and bloat this repo for no benefit.
 Nothing in `third_party/` is meant to ship with these dotfiles.
+
+## `install.sh` installs the Brewfile and migrates former config paths
+
+The Windows installer already installs its required packages, while macOS
+previously required a separate `brew bundle` command before `install.sh`.
+That split made a successful configuration run look like it had installed
+tools such as eza when it had not. The macOS installer now runs the tracked
+Brewfile first, giving both platforms a one-command setup after their package
+manager is available. Uninstall still leaves packages in place.
+
+The move from top-level tool directories to `config/<tool>` also left existing
+Zsh loaders, Git includes, and symlinks pointing at paths that no longer
+exist. The installer recognizes only those exact former repository paths and
+updates them without replacing the preserved `.pre-dotfiles` backups. Other
+unexpected targets continue to stop installation rather than being assumed
+safe to overwrite.

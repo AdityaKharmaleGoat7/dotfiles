@@ -7,16 +7,20 @@ zshrc_path="$HOME/.zshrc"
 start_marker="# >>> dotfiles repository >>>"
 end_marker="# <<< dotfiles repository <<<"
 git_config="$repo_dir/config/git/config"
+legacy_git_config="$repo_dir/git/config"
 starship_source="$repo_dir/config/starship/starship.toml"
+legacy_starship_source="$repo_dir/starship/starship.toml"
 config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
 starship_target="$config_home/starship.toml"
 starship_backup="$config_home/starship.toml.pre-dotfiles"
 starship_init='eval "$(starship init zsh)"'
 btop_source="$repo_dir/config/btop/btop.conf"
+legacy_btop_source="$repo_dir/btop/btop.conf"
 btop_config_dir="$config_home/btop"
 btop_target="$btop_config_dir/btop.conf"
 btop_backup="$btop_config_dir/btop.conf.pre-dotfiles"
 tmux_source="$repo_dir/config/tmux/tmux.conf"
+legacy_tmux_source="$repo_dir/tmux/tmux.conf"
 tmux_target="$HOME/.tmux.conf"
 tmux_backup="$HOME/.tmux.conf.pre-dotfiles"
 zed_config_dir="$config_home/zed"
@@ -43,6 +47,47 @@ codex_dir="$HOME/.codex"
 codex_target="$codex_dir/AGENTS.md"
 codex_backup="$codex_dir/AGENTS.md.pre-dotfiles"
 
+install_packages() {
+    if ! command -v brew >/dev/null 2>&1; then
+        printf 'Homebrew is required. Install it from https://brew.sh, then run this script again.\n' >&2
+        exit 1
+    fi
+
+    printf 'Installing packages from %s/Brewfile\n' "$repo_dir"
+    brew bundle --file "$repo_dir/Brewfile"
+}
+
+install_shell_config() {
+    loader_line="[ -r \"$repo_dir/config/zsh/zshrc\" ] && source \"$repo_dir/config/zsh/zshrc\""
+    touch "$zshrc_path"
+    remove_standalone_starship_init
+
+    if grep -Fxq "$loader_line" "$zshrc_path"; then
+        printf 'Shell configuration is already installed.\n'
+        return
+    fi
+
+    if grep -Fq "$start_marker" "$zshrc_path"; then
+        temp_file=$(mktemp "${TMPDIR:-/tmp}/dotfiles-zshrc.XXXXXX")
+        awk -v start="$start_marker" -v end="$end_marker" '
+            $0 == start { skipping = 1; next }
+            $0 == end { skipping = 0; next }
+            !skipping { print }
+        ' "$zshrc_path" > "$temp_file"
+        mv "$temp_file" "$zshrc_path"
+        action="Updated"
+    else
+        action="Added"
+    fi
+
+    {
+        printf '\n%s\n' "$start_marker"
+        printf '%s\n' "$loader_line"
+        printf '%s\n' "$end_marker"
+    } >> "$zshrc_path"
+    printf '%s dotfiles loader in %s\n' "$action" "$zshrc_path"
+}
+
 remove_standalone_starship_init() {
     if grep -Fxq "$starship_init" "$zshrc_path"; then
         temp_file=$(mktemp "${TMPDIR:-/tmp}/dotfiles-zshrc.XXXXXX")
@@ -57,6 +102,13 @@ install_starship() {
 
     if [ -L "$starship_target" ] && [ "$(readlink "$starship_target")" = "$starship_source" ]; then
         printf 'Starship configuration is already installed.\n'
+        return
+    fi
+
+    if [ -L "$starship_target" ] && [ "$(readlink "$starship_target")" = "$legacy_starship_source" ]; then
+        unlink "$starship_target"
+        ln -s "$starship_source" "$starship_target"
+        printf 'Updated Starship configuration link at %s\n' "$starship_target"
         return
     fi
 
@@ -75,7 +127,7 @@ install_starship() {
 }
 
 uninstall_starship() {
-    if [ -L "$starship_target" ] && [ "$(readlink "$starship_target")" = "$starship_source" ]; then
+    if [ -L "$starship_target" ] && { [ "$(readlink "$starship_target")" = "$starship_source" ] || [ "$(readlink "$starship_target")" = "$legacy_starship_source" ]; }; then
         unlink "$starship_target"
         printf 'Removed Starship configuration link at %s\n' "$starship_target"
 
@@ -93,6 +145,13 @@ install_btop() {
 
     if [ -L "$btop_target" ] && [ "$(readlink "$btop_target")" = "$btop_source" ]; then
         printf 'btop configuration is already installed.\n'
+        return
+    fi
+
+    if [ -L "$btop_target" ] && [ "$(readlink "$btop_target")" = "$legacy_btop_source" ]; then
+        unlink "$btop_target"
+        ln -s "$btop_source" "$btop_target"
+        printf 'Updated btop configuration link at %s\n' "$btop_target"
         return
     fi
 
@@ -115,7 +174,7 @@ install_btop() {
 }
 
 uninstall_btop() {
-    if [ -L "$btop_target" ] && [ "$(readlink "$btop_target")" = "$btop_source" ]; then
+    if [ -L "$btop_target" ] && { [ "$(readlink "$btop_target")" = "$btop_source" ] || [ "$(readlink "$btop_target")" = "$legacy_btop_source" ]; }; then
         unlink "$btop_target"
         printf 'Removed btop configuration link at %s\n' "$btop_target"
 
@@ -131,6 +190,13 @@ uninstall_btop() {
 install_tmux() {
     if [ -L "$tmux_target" ] && [ "$(readlink "$tmux_target")" = "$tmux_source" ]; then
         printf 'tmux configuration is already installed.\n'
+        return
+    fi
+
+    if [ -L "$tmux_target" ] && [ "$(readlink "$tmux_target")" = "$legacy_tmux_source" ]; then
+        unlink "$tmux_target"
+        ln -s "$tmux_source" "$tmux_target"
+        printf 'Updated tmux configuration link at %s\n' "$tmux_target"
         return
     fi
 
@@ -153,7 +219,7 @@ install_tmux() {
 }
 
 uninstall_tmux() {
-    if [ -L "$tmux_target" ] && [ "$(readlink "$tmux_target")" = "$tmux_source" ]; then
+    if [ -L "$tmux_target" ] && { [ "$(readlink "$tmux_target")" = "$tmux_source" ] || [ "$(readlink "$tmux_target")" = "$legacy_tmux_source" ]; }; then
         unlink "$tmux_target"
         printf 'Removed tmux configuration link at %s\n' "$tmux_target"
 
@@ -363,18 +429,12 @@ uninstall_codex() {
 }
 
 install_dotfiles() {
-    touch "$zshrc_path"
-    remove_standalone_starship_init
+    install_packages
+    install_shell_config
 
-    if ! grep -Fq "$start_marker" "$zshrc_path"; then
-        {
-            printf '\n%s\n' "$start_marker"
-            printf '[ -r "%s/config/zsh/zshrc" ] && source "%s/config/zsh/zshrc"\n' "$repo_dir" "$repo_dir"
-            printf '%s\n' "$end_marker"
-        } >> "$zshrc_path"
-        printf 'Added dotfiles loader to %s\n' "$zshrc_path"
-    else
-        printf 'Shell configuration is already installed.\n'
+    if git config --global --get-all include.path 2>/dev/null | grep -Fxq "$legacy_git_config"; then
+        git config --global --fixed-value --unset-all include.path "$legacy_git_config"
+        printf 'Removed obsolete Git include for %s\n' "$legacy_git_config"
     fi
 
     if git config --global --get-all include.path 2>/dev/null | grep -Fxq "$git_config"; then
@@ -407,6 +467,7 @@ uninstall_dotfiles() {
     fi
 
     git config --global --fixed-value --unset-all include.path "$git_config" 2>/dev/null || true
+    git config --global --fixed-value --unset-all include.path "$legacy_git_config" 2>/dev/null || true
     printf 'Removed Git include for %s, if it was present.\n' "$git_config"
 
     uninstall_starship

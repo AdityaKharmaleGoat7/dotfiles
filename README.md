@@ -9,12 +9,15 @@ configuration lives under `config/<tool>`.
 
 ### Install
 
-Review the files first, then run:
+Homebrew is required. Review the files first, then run:
 
 ```sh
-brew bundle --file ./Brewfile
 ./install.sh
 ```
+
+The installer uses the tracked `Brewfile` to install missing command-line
+tools and applications, then connects their configurations to this repository.
+This includes Starship, so a separate Starship installation is not required.
 
 Restart the terminal or reload the shell configuration:
 
@@ -44,8 +47,8 @@ Starship is started by the tracked Zsh configuration, so the installer removes
 any standalone Starship startup line already in `~/.zshrc` to avoid duplicate
 prompts. After uninstalling, run `exec zsh` to restore the normal prompt.
 
-`uv`, the Python package and project manager, is installed by
-`brew bundle --file ./Brewfile`. The tracked Zsh configuration registers its
+`uv`, the Python package and project manager, is installed by `./install.sh`.
+The tracked Zsh configuration registers its
 completions when `uv` is on the `PATH`.
 
 If a Starship configuration already existed, the installer preserved it as
@@ -110,7 +113,7 @@ the keys you need to override, then rerun `./install.sh`.
 
 This removes the shell block and Git include, restores previous Starship,
 btop, and tmux configurations when backups exist, and leaves this repository
-and Homebrew packages in place.
+and installed Homebrew packages in place.
 
 ## 2) Windows
 
@@ -244,8 +247,8 @@ previous btop configuration. Installed packages remain available.
 
 ## Command-line tools
 
-`brew bundle --file ./Brewfile` on macOS and `install.ps1` on Windows also
-install two Rust-based replacements for standard tools:
+`install.sh` on macOS and `install.ps1` on Windows also install two Rust-based
+replacements for standard tools:
 
 - `dust`: a `du` replacement with a tree view of what's using disk space
 - `eza`: an `ls` replacement with colors, icons, and Git-status-aware
@@ -271,8 +274,8 @@ PowerShell configuration, `g <alias>`:
 - `g lg`: a one-line, graphed, all-branches log
 - `g ui`: opens LazyGit in the current repository
 
-LazyGit is installed by `brew bundle --file ./Brewfile` on macOS/Linux and by
-`install.ps1` on Windows. The tracked `config/lazygit/config.yml` forces its
+LazyGit is installed by `install.sh` on macOS/Linux and by `install.ps1` on
+Windows. The tracked `config/lazygit/config.yml` forces its
 UI to English; see [`docs/DECISIONS.md`](docs/DECISIONS.md) for why. It's
 linked (symlinked on macOS/Linux, hardlinked on Windows) into LazyGit's own
 config directory: `~/.config/lazygit` on Linux, `~/Library/Application
