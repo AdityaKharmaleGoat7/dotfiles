@@ -255,6 +255,68 @@ replacements for standard tools:
   listings; the shared `ll`/`la` aliases use it automatically when it's
   installed, falling back to plain `ls`/`Get-ChildItem` otherwise
 
+## AI study mode
+
+From any Git working tree, use these commands to open an interactive study
+session:
+
+```sh
+ai study
+ai architecture
+ai explain src/main.py
+ai trace handle_request
+ai why src/main.py
+ai diff-study
+ai quiz "request lifecycle"
+ai --help
+```
+
+`ai` prefers Codex, then Claude Code, then OpenCode, based on which command
+is available on your PATH. Install and authenticate at least one yourself;
+the dotfiles installers do not install AI CLIs. A selected CLI's failure is
+reported without retrying through another provider. Your existing model
+selection stays in use.
+
+Study sessions begin with architecture, identify real entry points, trace
+execution and data flow, cite exact files/functions, and distinguish facts
+from assumptions. Quiz mode asks one question at a time and waits for your
+answer. File paths are resolved from the directory where you invoke `ai`;
+quote paths or topics containing spaces. Sessions launch from the Git root
+and return you to your original directory.
+
+`ai diff-study` captures staged (HEAD to index) and unstaged (index to working
+tree) patches separately at launch. It explains old/new behavior, motivation
+where supported by evidence, important functions, possible side effects,
+and what to understand before committing. Untracked filenames are listed
+without reading their contents automatically. Empty and binary diffs are
+identified rather than treated as source changes.
+
+Shared rules live in `config/ai/rules/study.md`; each command has a Markdown
+prompt under `config/ai/prompts/`. The helpers `config/ai/ai.zsh` and
+`config/ai/ai.ps1` are loaded by the existing shell profiles, so no new
+installer links are required. Prompt edits apply on the next invocation.
+Existing installations can reload with `source ~/.zshrc` on macOS or open a
+new PowerShell 7 session on Windows.
+
+Codex uses a read-only sandbox with approvals disabled. Claude is limited to
+Read/Glob/Grep with MCP tools denied. OpenCode uses an invocation-local study
+agent allowing file inspection and questions while denying shell commands
+and edits. Study prompts prohibit modifications throughout the conversation.
+These restrictions apply to `ai` sessions, not your normal coding sessions;
+do not relax permissions during study. CLIs may still maintain their own
+session/authentication files outside the studied repository. Temporary study
+context lives outside the repository and is removed when the CLI exits.
+
+Run the command-routing tests without calling an AI service:
+
+```sh
+zsh -f tests/ai.zsh
+```
+
+```powershell
+pwsh -NoProfile -File tests/ai.ps1
+```
+
 ## Git identity
 
 Keep your Git name and email in the existing global config on either
