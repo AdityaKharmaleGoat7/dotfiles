@@ -9,12 +9,22 @@ function global:gs {
     git status --short --branch @args
 }
 
-function global:ll {
-    Get-ChildItem -Force @args
-}
+if (Get-Command eza -ErrorAction SilentlyContinue) {
+    function global:ll {
+        eza -lah --git @args
+    }
 
-function global:la {
-    Get-ChildItem -Force -Name @args
+    function global:la {
+        eza -a @args
+    }
+} else {
+    function global:ll {
+        Get-ChildItem -Force @args
+    }
+
+    function global:la {
+        Get-ChildItem -Force -Name @args
+    }
 }
 
 if (Get-Command uv -ErrorAction SilentlyContinue) {

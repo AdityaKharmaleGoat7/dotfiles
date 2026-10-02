@@ -27,10 +27,16 @@ fi
 
 alias ..='cd ..'
 alias ...='cd ../..'
-alias ll='ls -lah'
-alias la='ls -A'
 alias g='git'
 alias gs='git status --short --branch'
+
+if command -v eza >/dev/null 2>&1; then
+    alias ll='eza -lah --git'
+    alias la='eza -a'
+else
+    alias ll='ls -lah'
+    alias la='ls -A'
+fi
 
 # Start the Starship prompt only while these dotfiles are installed.
 if command -v starship >/dev/null 2>&1; then
