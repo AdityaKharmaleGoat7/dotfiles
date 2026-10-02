@@ -75,6 +75,24 @@ supported there. Windows users who want tmux run it inside WSL instead
 (documented in the README); `install.sh` on WSL/macOS/Linux handles the real
 install and link.
 
+## `install.ps1`'s Dust fallback path is discovered, not hardcoded
+
+Every other Winget-installed tool here (Starship, uv, LazyGit, eza) ends up
+at a fallback path that's stable across versions, keyed only by the
+package's publisher ID (the `8wekyb3d8bbwe` suffix from the LazyGit
+decision above). Dust breaks that pattern: Winget extracts its release zip
+with the version baked into the folder name
+(`dust-v1.2.5-x86_64-pc-windows-gnu\dust.exe`), confirmed by actually
+installing it and inspecting
+`%LOCALAPPDATA%\Microsoft\WinGet\Packages\bootandy.dust_...\`. A literal
+fallback path would silently go stale on the next Dust version bump: the
+idempotency check would stop finding the binary, call `winget install`
+again, and that call then fails outright, since re-running `winget install`
+on an already-current package exits non-zero (`43`, "No available upgrade
+found") instead of a no-op success. `Get-DustPath` searches the package
+directory for `dust.exe` at runtime instead of guessing the subfolder name,
+so it keeps working across Dust version bumps without needing a repo update.
+
 ## `config/zed/settings.json` omits the `proxy` setting
 
 The live settings.json this was tracked from had `"proxy":

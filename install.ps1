@@ -53,6 +53,19 @@ function Get-PwshPath {
     return Get-CommandPath "pwsh" @("$env:ProgramFiles\PowerShell\7\pwsh.exe")
 }
 
+function Get-DustPath {
+    # Winget extracts dust's zip with the version in the folder name
+    # (dust-v1.2.5-x86_64-pc-windows-gnu\dust.exe), unlike every other
+    # winget-installed tool here, so a literal fallback path would break
+    # on the next version bump. Search for the binary instead of guessing it.
+    $packageDir = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\bootandy.dust_Microsoft.Winget.Source_8wekyb3d8bbwe"
+    $extracted = if (Test-Path -LiteralPath $packageDir) {
+        Get-ChildItem -LiteralPath $packageDir -Filter "dust.exe" -Recurse -ErrorAction SilentlyContinue |
+            Select-Object -First 1 -ExpandProperty FullName
+    }
+    return Get-CommandPath "dust" @(if ($extracted) { $extracted })
+}
+
 function Ensure-Packages {
     if (!(Get-Command winget -ErrorAction SilentlyContinue)) {
         throw "Winget is required. Install 'App Installer' from Microsoft Store, then run this script again."
@@ -84,6 +97,14 @@ function Ensure-Packages {
 
     if (!(Test-VCRuntime)) {
         Install-WingetPackage "Microsoft.VCRedist.2015+.x64" "Microsoft Visual C++ Runtime"
+    }
+
+    if (!(Get-DustPath)) {
+        Install-WingetPackage "bootandy.dust" "Dust"
+    }
+
+    if (!(Get-CommandPath "eza" @("$env:LOCALAPPDATA\Microsoft\WinGet\Packages\eza-community.eza_Microsoft.Winget.Source_8wekyb3d8bbwe\eza.exe"))) {
+        Install-WingetPackage "eza-community.eza" "eza"
     }
 
     $scoopPath = Get-CommandPath "scoop" @("$HOME\scoop\shims\scoop.ps1")
