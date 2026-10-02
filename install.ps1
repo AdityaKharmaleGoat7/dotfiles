@@ -388,11 +388,35 @@ function Uninstall-LazygitConfig {
 function Install-CodexConfig {
     $codexConfigDir = Join-Path $HOME ".codex"
     Install-ManagedHardLink -Source $codexSource -Target (Join-Path $codexConfigDir "AGENTS.md") -Backup (Join-Path $codexConfigDir "AGENTS.md.pre-dotfiles") -MarkerPath (Join-Path $codexConfigDir "AGENTS.md.dotfiles-managed") -Label "Codex AGENTS.md"
+
+    $rulesSourceDir = Join-Path $repoDir "config\codex\rules"
+    Get-ChildItem -LiteralPath $rulesSourceDir -Filter "*.rules" | ForEach-Object {
+        $target = Join-Path $codexConfigDir "rules\$($_.Name)"
+        Install-ManagedHardLink -Source $_.FullName -Target $target -Backup "$target.pre-dotfiles" -MarkerPath "$target.dotfiles-managed" -Label "Codex rule ($($_.Name))"
+    }
+
+    $skillsSourceDir = Join-Path $repoDir "config\codex\skills"
+    Get-ChildItem -LiteralPath $skillsSourceDir -Directory | ForEach-Object {
+        $target = Join-Path $codexConfigDir "skills\$($_.Name)\SKILL.md"
+        Install-ManagedHardLink -Source (Join-Path $_.FullName "SKILL.md") -Target $target -Backup "$target.pre-dotfiles" -MarkerPath "$target.dotfiles-managed" -Label "Codex skill ($($_.Name))"
+    }
 }
 
 function Uninstall-CodexConfig {
     $codexConfigDir = Join-Path $HOME ".codex"
     Uninstall-ManagedHardLink -Target (Join-Path $codexConfigDir "AGENTS.md") -Backup (Join-Path $codexConfigDir "AGENTS.md.pre-dotfiles") -MarkerPath (Join-Path $codexConfigDir "AGENTS.md.dotfiles-managed") -Label "Codex AGENTS.md"
+
+    $rulesSourceDir = Join-Path $repoDir "config\codex\rules"
+    Get-ChildItem -LiteralPath $rulesSourceDir -Filter "*.rules" | ForEach-Object {
+        $target = Join-Path $codexConfigDir "rules\$($_.Name)"
+        Uninstall-ManagedHardLink -Target $target -Backup "$target.pre-dotfiles" -MarkerPath "$target.dotfiles-managed" -Label "Codex rule ($($_.Name))"
+    }
+
+    $skillsSourceDir = Join-Path $repoDir "config\codex\skills"
+    Get-ChildItem -LiteralPath $skillsSourceDir -Directory | ForEach-Object {
+        $target = Join-Path $codexConfigDir "skills\$($_.Name)\SKILL.md"
+        Uninstall-ManagedHardLink -Target $target -Backup "$target.pre-dotfiles" -MarkerPath "$target.dotfiles-managed" -Label "Codex skill ($($_.Name))"
+    }
 }
 
 function Uninstall-ZedConfig {

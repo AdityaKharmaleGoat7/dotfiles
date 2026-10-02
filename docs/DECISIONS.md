@@ -92,6 +92,19 @@ same file and has no comment-stripped-JSON-style merge tool here the way
 Zed's settings do; managing it would need a TOML merge mechanism this
 repo doesn't have yet, so it was left alone rather than guessed at.
 
+## Codex's rules/ and skills/ are linked per-file, not per-directory
+
+`rules/*.rules` (command-approval policy, one file per tool) and
+`skills/*/SKILL.md` (task playbooks) are linked individually, one entry
+per file, rather than linking either directory as a whole: a real
+`~/.codex/skills/` on a machine with Codex actually installed already had
+a `.system/` subdirectory of Codex's own built-in skills, so replacing the
+whole `skills/` directory with a symlink to this repo's `config/codex/skills`
+would hide that. install.sh and install.ps1 each needed a generic
+per-item link helper to do this without an install/uninstall function
+pair per rule and per skill (`install_codex_link` in install.sh;
+`Install-ManagedHardLink`, already generic, reused in install.ps1).
+
 ## `install.ps1`'s Dust fallback path is discovered, not hardcoded
 
 Every other Winget-installed tool here (Starship, uv, LazyGit, eza) ends up

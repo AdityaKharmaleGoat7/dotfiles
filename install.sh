@@ -289,40 +289,77 @@ uninstall_lazygit() {
     fi
 }
 
-install_codex() {
-    mkdir -p "$codex_dir"
-
-    if [ -L "$codex_target" ] && [ "$(readlink "$codex_target")" = "$codex_source" ]; then
-        printf 'Codex AGENTS.md is already installed.\n'
+# Links a single source path to a single target path, backing up anything
+# already at the target. Used for Codex's AGENTS.md plus its per-file
+# rules/ and per-directory skills/ entries, which are too numerous to give
+# each its own hand-written install_<name>/uninstall_<name> pair.
+# $1 = source path, $2 = target path, $3 = label for log messages
+install_codex_link() {
+    if [ -L "$2" ] && [ "$(readlink "$2")" = "$1" ]; then
+        printf '%s is already installed.\n' "$3"
         return
     fi
 
-    if [ -e "$codex_backup" ] || [ -L "$codex_backup" ]; then
-        printf 'Cannot install Codex AGENTS.md: backup already exists at %s\n' "$codex_backup" >&2
+    if [ -e "$2.pre-dotfiles" ] || [ -L "$2.pre-dotfiles" ]; then
+        printf 'Cannot install %s: backup already exists at %s\n' "$3" "$2.pre-dotfiles" >&2
         exit 1
     fi
 
-    if [ -e "$codex_target" ] || [ -L "$codex_target" ]; then
-        mv "$codex_target" "$codex_backup"
-        printf 'Backed up existing Codex AGENTS.md to %s\n' "$codex_backup"
+    if [ -e "$2" ] || [ -L "$2" ]; then
+        mv "$2" "$2.pre-dotfiles"
+        printf 'Backed up existing %s to %s\n' "$3" "$2.pre-dotfiles"
     fi
 
-    ln -s "$codex_source" "$codex_target"
-    printf 'Linked Codex AGENTS.md at %s\n' "$codex_target"
+    ln -s "$1" "$2"
+    printf 'Linked %s at %s\n' "$3" "$2"
+}
+
+uninstall_codex_link() {
+    if [ -L "$2" ] && [ "$(readlink "$2")" = "$1" ]; then
+        unlink "$2"
+        printf 'Removed %s link at %s\n' "$3" "$2"
+
+        if [ -e "$2.pre-dotfiles" ] || [ -L "$2.pre-dotfiles" ]; then
+            mv "$2.pre-dotfiles" "$2"
+            printf 'Restored previous %s.\n' "$3"
+        fi
+    else
+        printf 'No managed %s link found.\n' "$3"
+    fi
+}
+
+install_codex() {
+    mkdir -p "$codex_dir" "$codex_dir/rules" "$codex_dir/skills"
+
+    install_codex_link "$codex_source" "$codex_target" "Codex AGENTS.md"
+
+    for rules_file in "$repo_dir"/config/codex/rules/*.rules; do
+        [ -e "$rules_file" ] || continue
+        rules_name=$(basename "$rules_file")
+        install_codex_link "$rules_file" "$codex_dir/rules/$rules_name" "Codex rule ($rules_name)"
+    done
+
+    for skill_dir in "$repo_dir"/config/codex/skills/*; do
+        [ -d "$skill_dir" ] || continue
+        skill_name=$(basename "$skill_dir")
+        install_codex_link "$skill_dir" "$codex_dir/skills/$skill_name" "Codex skill ($skill_name)"
+    done
 }
 
 uninstall_codex() {
-    if [ -L "$codex_target" ] && [ "$(readlink "$codex_target")" = "$codex_source" ]; then
-        unlink "$codex_target"
-        printf 'Removed Codex AGENTS.md link at %s\n' "$codex_target"
+    uninstall_codex_link "$codex_source" "$codex_target" "Codex AGENTS.md"
 
-        if [ -e "$codex_backup" ] || [ -L "$codex_backup" ]; then
-            mv "$codex_backup" "$codex_target"
-            printf 'Restored previous Codex AGENTS.md.\n'
-        fi
-    else
-        printf 'No managed Codex AGENTS.md link found.\n'
-    fi
+    for rules_file in "$repo_dir"/config/codex/rules/*.rules; do
+        [ -e "$rules_file" ] || continue
+        rules_name=$(basename "$rules_file")
+        uninstall_codex_link "$rules_file" "$codex_dir/rules/$rules_name" "Codex rule ($rules_name)"
+    done
+
+    for skill_dir in "$repo_dir"/config/codex/skills/*; do
+        [ -d "$skill_dir" ] || continue
+        skill_name=$(basename "$skill_dir")
+        uninstall_codex_link "$skill_dir" "$codex_dir/skills/$skill_name" "Codex skill ($skill_name)"
+    done
 }
 
 install_dotfiles() {
