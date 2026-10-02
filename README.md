@@ -275,3 +275,11 @@ non-obvious constraint, a workaround, or a unit. Rationale, alternatives
 considered, and the history behind a decision belong in
 [`docs/DECISIONS.md`](docs/DECISIONS.md) instead, so the two don't drift out
 of sync with each other.
+
+## Development philosophy
+
+[`docs/PHILOSOPHY.md`](docs/PHILOSOPHY.md) is the shared baseline for how
+changes get made here, whether by a human or an AI agent. Read it before
+coding against this repository.
+[`AGENTS.md`](AGENTS.md) layers stricter rules on top for AI agents
+specifically.

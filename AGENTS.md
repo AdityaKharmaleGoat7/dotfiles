@@ -1,7 +1,10 @@
 # AGENTS.md
 
-Rules for AI coding agents working in this repo. Rationale and history for
-any of these live in [`docs/DECISIONS.md`](docs/DECISIONS.md), not here.
+Rules for AI coding agents working in this repo. Read
+[`docs/PHILOSOPHY.md`](docs/PHILOSOPHY.md) first; it's the shared baseline
+for humans and agents alike. This file layers stricter, mechanical rules on
+top, for AI agents specifically. Rationale and history for any of these
+live in [`docs/DECISIONS.md`](docs/DECISIONS.md), not here.
 
 ## Verification
 
