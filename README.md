@@ -126,10 +126,10 @@ override:
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-The installer uses Winget to install Git, PowerShell 7, Starship, uv, LazyGit,
-and the Microsoft Visual C++ runtime. It installs Scoop when needed and uses
-it to install the GPU-enabled `btop-lhm` package. Running the installer again
-is safe.
+The installer uses Winget to install Git, PowerShell 7, Starship, uv,
+LazyGit, Dust, eza, and the Microsoft Visual C++ runtime. It installs Scoop
+when needed and uses it to install the GPU-enabled `btop-lhm` package.
+Running the installer again is safe.
 
 Open a new PowerShell 7 (`pwsh`) terminal after installing, not the default
 blue Windows PowerShell (`powershell.exe`); they have separate profile
@@ -233,6 +233,16 @@ the keys you need to override, then rerun `.\install.ps1`.
 
 This removes the managed PowerShell block and Git include and restores any
 previous btop configuration. Installed packages remain available.
+
+## Command-line tools
+
+`brew bundle --file ./Brewfile` on macOS and `install.ps1` on Windows also
+install two Rust-based replacements for standard tools:
+
+- `dust`: a `du` replacement with a tree view of what's using disk space
+- `eza`: an `ls` replacement with colors, icons, and Git-status-aware
+  listings; the shared `ll`/`la` aliases use it automatically when it's
+  installed, falling back to plain `ls`/`Get-ChildItem` otherwise
 
 ## Git identity
 
