@@ -3,6 +3,8 @@
 $configRoot = Split-Path -Parent $PSScriptRoot
 $env:STARSHIP_CONFIG = Join-Path $configRoot "starship\starship.toml"
 
+. (Join-Path $configRoot "ai/ai.ps1")
+
 Set-Alias -Name g -Value git -Scope Global
 
 function global:gs {

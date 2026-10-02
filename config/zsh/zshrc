@@ -30,6 +30,8 @@ alias ...='cd ../..'
 alias g='git'
 alias gs='git status --short --branch'
 
+source "${${(%):-%x}:A:h:h}/ai/ai.zsh"
+
 if command -v eza >/dev/null 2>&1; then
     alias ll='eza -lah --git'
     alias la='eza -a'
