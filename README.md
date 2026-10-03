@@ -121,7 +121,3 @@ zsh -f tests/ai.zsh
 ```powershell
 pwsh -NoProfile -File tests/ai.ps1
 ```
-
-## License
-
-[MIT](LICENSE).
