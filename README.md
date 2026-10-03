@@ -67,6 +67,55 @@ Zed settings are generated from `config/zed/settings.json` plus the local
 overrides. Local keys win and nested objects merge. Rerun the installer after
 editing either file; direct edits in Zed's settings UI are overwritten.
 
+### Proxy settings
+
+Keep proxy settings in the local files above. Never put proxy credentials in
+files inside this repository, including gitignored files. For Zsh, add the
+following to `~/.zshrc.local`:
+
+```sh
+export HTTP_PROXY="http://proxy.example.com:8080"
+export HTTPS_PROXY="$HTTP_PROXY"
+export NO_PROXY="localhost,127.0.0.1,.example.com"
+
+# Some command-line tools only read the lowercase names.
+export http_proxy="$HTTP_PROXY"
+export https_proxy="$HTTPS_PROXY"
+export no_proxy="$NO_PROXY"
+```
+
+For PowerShell, add the equivalent values to
+`~/.config/powershell/profile.local.ps1`:
+
+```powershell
+$env:HTTP_PROXY = "http://proxy.example.com:8080"
+$env:HTTPS_PROXY = $env:HTTP_PROXY
+$env:NO_PROXY = "localhost,127.0.0.1,.example.com"
+```
+
+Replace the example address and bypass list for the current network. Before
+the first install, load the local file in the current shell so package-manager
+processes can inherit the proxy settings:
+
+```sh
+source ~/.zshrc.local
+```
+
+```powershell
+. "$HOME/.config/powershell/profile.local.ps1"
+```
+
+Zed reads these environment variables and also supports an explicit proxy
+setting. To use the setting, create `config/zed/settings.local.json` with:
+
+```json
+{
+  "proxy": "http://proxy.example.com:8080"
+}
+```
+
+Rerun the installer after changing the Zed override.
+
 ## AI study mode
 
 Install and authenticate Codex, Claude Code, or OpenCode separately, then run
