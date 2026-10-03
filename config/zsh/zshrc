@@ -30,6 +30,12 @@ alias ...='cd ../..'
 alias g='git'
 alias gs='git status --short --branch'
 
+dotfiles_scripts_dir="${${(%):-%x}:A:h:h:h}/scripts"
+alias pydebug='python3 "$dotfiles_scripts_dir/debug_env.py"'
+alias pyimports='python3 "$dotfiles_scripts_dir/check_imports.py"'
+alias pyports='python3 "$dotfiles_scripts_dir/check_ports.py"'
+alias pyprocs='python3 "$dotfiles_scripts_dir/check_processes.py"'
+
 source "${${(%):-%x}:A:h:h}/ai/ai.zsh"
 
 if command -v eza >/dev/null 2>&1; then

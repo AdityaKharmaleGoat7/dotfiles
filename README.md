@@ -137,6 +137,51 @@ Sessions inspect code with edits disabled; `diff-study` explains staged and
 unstaged changes. Quote paths or topics containing spaces. Prompts live in
 [`config/ai/`](config/ai/).
 
+## Python diagnostics
+
+The scripts in [`scripts/`](scripts/) inspect the Python environment,
+imports, local TCP ports, and running processes. Run them from the repository
+you are working on so `debug_env.py` reports that working directory. Use that
+project's Python interpreter (or activate its virtual environment first).
+
+In Zsh, open a new terminal or run `source ~/.zshrc`, then use the aliases from
+any repository:
+
+```sh
+pydebug
+pyimports requests pytest
+pyports 8000 5432
+pyprocs uvicorn postgres
+```
+
+On macOS or Linux, set the path to this dotfiles checkout once in your shell:
+
+```sh
+DOTFILES_DIR="$HOME/path/to/dotfiles"
+python3 "$DOTFILES_DIR/scripts/debug_env.py"
+python3 "$DOTFILES_DIR/scripts/check_imports.py" requests pytest
+python3 "$DOTFILES_DIR/scripts/check_ports.py" 8000 5432
+python3 "$DOTFILES_DIR/scripts/check_processes.py" uvicorn postgres
+```
+
+On Windows PowerShell:
+
+```powershell
+$dotfilesDir = "C:\path\to\dotfiles"
+python "$dotfilesDir/scripts/debug_env.py"
+python "$dotfilesDir/scripts/check_imports.py" requests pytest
+python "$dotfilesDir/scripts/check_ports.py" 8000 5432
+python "$dotfilesDir/scripts/check_processes.py" uvicorn postgres
+```
+
+Replace the module names, TCP ports, and process terms with those used by your
+project. `check_ports.py` tests binding to `127.0.0.1` by default; pass
+`--host 0.0.0.0` to check all local IPv4 interfaces. Import, port, and process
+checks exit with a nonzero status when a requested check fails or no matching
+process is found. The environment report masks likely credential variables
+and proxy values, but review it before sharing. On Windows, the process check
+matches executable names; on macOS and Linux, it also searches command lines.
+
 ## Uninstall
 
 macOS:
