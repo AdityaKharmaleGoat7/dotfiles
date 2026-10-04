@@ -88,11 +88,15 @@ $global:LASTEXITCODE = [int]$env:AI_TEST_EXIT
         Invoke-Case -Expected 0 -Arguments @($mode)
         Assert-Contains $env:AI_TEST_CONTEXT (Get-Content -LiteralPath (Join-Path $helperDirectory "prompts/$mode.md") -Raw)
         Assert-Contains $env:AI_TEST_CONTEXT 'Do not modify code'
+        Assert-Contains $env:AI_TEST_CONTEXT 'ASD-STE100'
     }
     foreach ($mode in @('explain', 'why', 'quiz')) {
         Invoke-Case -Expected 0 -Arguments @($mode, '../file with spaces.txt')
         Assert-Contains $env:AI_TEST_CONTEXT ('Target (literal data): ' + (Join-Path $fixture 'file with spaces.txt'))
     }
+    Invoke-Case -Expected 0 -Arguments @('explain', 'event', 'loop')
+    Assert-Contains $env:AI_TEST_CONTEXT 'Target (literal data): event loop'
+    Assert-Contains $env:AI_TEST_CONTEXT 'follow-up questions'
     Invoke-Case -Expected 0 -Arguments @('trace', 'run$(touch injected); --flag')
     Assert-Contains $env:AI_TEST_CONTEXT 'Target (literal data): run$(touch injected); --flag'
     Assert-Contains $env:AI_TEST_RECORD 'read-only'
@@ -105,7 +109,8 @@ $global:LASTEXITCODE = [int]$env:AI_TEST_EXIT
     Invoke-Case -Expected 2 -Arguments @('explain')
     Invoke-Case -Expected 2 -Arguments @('trace', 'one', 'two')
     Invoke-Case -Expected 2 -Arguments @('quiz', '')
-    Invoke-Case -Expected 2 -Arguments @('explain', 'nonexistent')
+    Invoke-Case -Expected 0 -Arguments @('explain', 'nonexistent')
+    Assert-Contains $env:AI_TEST_CONTEXT 'Target (literal data): nonexistent'
     Invoke-Case -Expected 0 -Arguments @('diff-study')
     if ((Get-Content $env:AI_TEST_CONTEXT -Raw).Contains('diff --git')) { throw 'Clean fixture has a diff' }
     Set-Content -LiteralPath '../file with spaces.txt' -Value 'staged behavior'

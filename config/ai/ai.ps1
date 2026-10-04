@@ -5,9 +5,10 @@ function global:ai {
     $studyArgs = @($args)
     $mode = if ($studyArgs.Count) { [string]$studyArgs[0] } else { '--help' }
     if ($mode -in @('--help', '-h')) {
-        Write-Output 'Usage: ai study | architecture | explain <file> | trace <symbol>'
+        Write-Output 'Usage: ai study | architecture | explain <file-or-topic...> | trace <symbol>'
         Write-Output '          why <file-or-symbol> | diff-study | quiz <file-or-topic>'
-        Write-Output 'Quote targets containing spaces. Opens an interactive, read-only study session.'
+        Write-Output 'Quote paths containing spaces. Explain topics can use multiple words.'
+        Write-Output 'Opens an interactive, read-only study session; ask follow-up questions there.'
         Write-Output 'Backend preference: codex, claude, opencode (must be installed and authenticated).'
         Write-Output 'diff-study covers staged and unstaged tracked changes; untracked names only.'
         $global:LASTEXITCODE = 0
@@ -21,12 +22,13 @@ function global:ai {
     }
     $needsTarget = $mode -in $targetModes
     $expectedCount = if ($needsTarget) { 2 } else { 1 }
-    if ($studyArgs.Count -ne $expectedCount -or ($needsTarget -and [string]::IsNullOrWhiteSpace($studyArgs[1]))) {
+    $validCount = if ($mode -eq 'explain') { $studyArgs.Count -ge 2 } else { $studyArgs.Count -eq $expectedCount }
+    $target = if ($needsTarget -and $studyArgs.Count -ge 2) { $studyArgs[1..($studyArgs.Count - 1)] -join ' ' } else { '' }
+    if (!$validCount -or ($needsTarget -and [string]::IsNullOrWhiteSpace($target))) {
         Write-Error "ai: invalid arguments for $mode; quote spaces; see ai --help" -ErrorAction Continue
         $global:LASTEXITCODE = 2
         return
     }
-    $target = if ($needsTarget) { [string]$studyArgs[1] } else { '' }
     $callerDirectory = (Get-Location).Path
     $PSNativeCommandUseErrorActionPreference = $false
     if (!(Get-Command git -CommandType Application -ErrorAction SilentlyContinue)) {
@@ -38,11 +40,6 @@ function global:ai {
     if ($LASTEXITCODE -ne 0) {
         Write-Error 'ai: run this command inside a Git working tree' -ErrorAction Continue
         $global:LASTEXITCODE = 1
-        return
-    }
-    if ($mode -eq 'explain' -and !(Test-Path -LiteralPath $target -PathType Leaf)) {
-        Write-Error "ai: file not found: $target" -ErrorAction Continue
-        $global:LASTEXITCODE = 2
         return
     }
     if ($target -and (Test-Path -LiteralPath $target -PathType Leaf)) {

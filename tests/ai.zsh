@@ -58,11 +58,15 @@ for mode in study architecture; do
     expect_status 0 ai "$mode"
     assert_contains "$AI_TEST_CONTEXT" "$(< "$_AI_STUDY_DIR/prompts/$mode.md")"
     assert_contains "$AI_TEST_CONTEXT" 'Do not modify code'
+    assert_contains "$AI_TEST_CONTEXT" 'ASD-STE100'
 done
 for mode in explain why quiz; do
     expect_status 0 ai "$mode" '../file with spaces.txt'
     assert_contains "$AI_TEST_CONTEXT" "Target (literal data): $test_tmp/repo/file with spaces.txt"
 done
+expect_status 0 ai explain event loop
+assert_contains "$AI_TEST_CONTEXT" 'Target (literal data): event loop'
+assert_contains "$AI_TEST_CONTEXT" 'follow-up questions'
 expect_status 0 ai trace 'run$(touch injected); --flag'
 assert_contains "$AI_TEST_CONTEXT" 'Target (literal data): run$(touch injected); --flag'
 [[ ! -e injected && $PWD == "$test_tmp/repo/nested" ]]
@@ -77,7 +81,8 @@ expect_status 2 ai study extra
 expect_status 2 ai explain
 expect_status 2 ai trace one two
 expect_status 2 ai quiz ''
-expect_status 2 ai explain nonexistent
+expect_status 0 ai explain nonexistent
+assert_contains "$AI_TEST_CONTEXT" 'Target (literal data): nonexistent'
 
 expect_status 0 ai diff-study
 assert_contains "$AI_TEST_CONTEXT" '## Staged patch: HEAD -> index'
@@ -169,8 +174,12 @@ ln -s "$git_bin" "$test_tmp/bin/git"
 
 # Load the real profile with an isolated home and no real AI CLI on PATH.
 mkdir "$test_tmp/home"
-expect_status 0 /usr/bin/env HOME="$test_tmp/home" /bin/zsh -f -c 'source "$1"; ai --help' -- "$local_repo/config/zsh/zshrc"
+expect_status 0 /usr/bin/env HOME="$test_tmp/home" TERM=xterm /bin/zsh -f -c 'source "$1"; ai --help' -- "$local_repo/config/zsh/zshrc"
 assert_contains "$test_tmp/output" 'Usage: ai'
-[[ ! -s "$test_tmp/error" ]]
+if [[ -s "$test_tmp/error" ]]; then
+    print -u2 -- 'FAIL: profile wrote to stderr'
+    /bin/cat -- "$test_tmp/error" >&2
+    exit 1
+fi
 
 print -- "PASS: $passed command cases; routing, arguments, diff snapshots, read-only flags, cleanup, and state preservation"

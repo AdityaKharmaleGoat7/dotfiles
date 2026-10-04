@@ -5,9 +5,10 @@ ai() (
     local ai_mode=${1:---help} ai_target='' ai_root ai_backend ai_tmp ai_result
     local ai_caller=$PWD
     if [[ $ai_mode == --help || $ai_mode == -h ]]; then
-        print -r -- 'Usage: ai study | architecture | explain <file> | trace <symbol>'
+        print -r -- 'Usage: ai study | architecture | explain <file-or-topic...> | trace <symbol>'
         print -r -- '          why <file-or-symbol> | diff-study | quiz <file-or-topic>'
-        print -r -- 'Quote targets containing spaces. Opens an interactive, read-only study session.'
+        print -r -- 'Quote paths containing spaces. Explain topics can use multiple words.'
+        print -r -- 'Opens an interactive, read-only study session; ask follow-up questions there.'
         print -r -- 'Backend preference: codex, claude, opencode (must be installed and authenticated).'
         print -r -- 'diff-study covers staged and unstaged tracked changes; untracked names only.'
         return 0
@@ -19,7 +20,13 @@ ai() (
                 print -u2 -- "ai: $ai_mode takes no target; see ai --help"
                 return 2
             fi ;;
-        explain|trace|why|quiz)
+        explain)
+            if (( $# == 0 )) || [[ -z "$*" ]]; then
+                print -u2 -- 'ai: explain requires a file or topic; see ai --help'
+                return 2
+            fi
+            ai_target="$*" ;;
+        trace|why|quiz)
             if (( $# != 1 )) || [[ -z $1 ]]; then
                 print -u2 -- "ai: $ai_mode requires one target; quote spaces; see ai --help"
                 return 2
@@ -31,10 +38,6 @@ ai() (
         print -u2 -- 'ai: run this command inside a Git working tree'
         return 1
     }
-    if [[ $ai_mode == explain && ! -f $ai_target ]]; then
-        print -u2 -- "ai: file not found: $ai_target"
-        return 2
-    fi
     if [[ -n $ai_target && -f $ai_target ]]; then
         ai_target=${ai_target:A}
     fi

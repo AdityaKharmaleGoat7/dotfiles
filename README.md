@@ -125,6 +125,7 @@ from any Git working tree:
 ai study
 ai architecture
 ai explain src/main.py
+ai explain event loop
 ai trace handle_request
 ai why src/main.py
 ai diff-study
@@ -134,7 +135,11 @@ ai --help
 
 `ai` selects Codex, then Claude Code, then OpenCode based on availability.
 Sessions inspect code with edits disabled; `diff-study` explains staged and
-unstaged changes. Quote paths or topics containing spaces. Prompts live in
+unstaged changes. `ai explain` accepts files or general topics, including
+multiword topics. Keep the session open to ask follow-up questions. Study
+replies aim for ASD-STE100-style English in about 80% of explanatory prose;
+this is a writing preference, not certified compliance. Quote paths and other
+targets containing spaces. Prompts live in
 [`config/ai/`](config/ai/).
 
 ## Project diagnostics
