@@ -137,7 +137,7 @@ Sessions inspect code with edits disabled; `diff-study` explains staged and
 unstaged changes. Quote paths or topics containing spaces. Prompts live in
 [`config/ai/`](config/ai/).
 
-## Python diagnostics
+## Project diagnostics
 
 The scripts in [`scripts/`](scripts/) inspect the Python environment,
 declared dependencies, imports, local TCP ports, and running processes. Run them
@@ -150,7 +150,7 @@ any repository:
 
 ```sh
 pydebug
-pydeps
+deps
 pyimports requests pytest
 pyports 8000 5432
 pyprocs uvicorn postgres
@@ -178,11 +178,14 @@ python "$dotfilesDir/scripts/check_ports.py" 8000 5432
 python "$dotfilesDir/scripts/check_processes.py" uvicorn postgres
 ```
 
-`pydeps` checks packages declared in `pyproject.toml`, `requirements.txt`, or
-`requirement.txt` against the current Python installation. It includes optional
-dependencies and dependency groups, checks whether each package is present,
-and does not install packages or validate version constraints. Reading
-`pyproject.toml` requires Python 3.11 or newer.
+`deps` checks packages declared in `pyproject.toml`, `requirements.txt`,
+`requirement.txt`, and `package.json`. Python packages are checked in the
+current Python installation; Node packages are checked in local or parent
+`node_modules` directories. It includes development and optional dependencies
+and required peer dependencies, reports whether each package is present, and
+does not install packages or validate version constraints. The existing
+`pydeps` alias also runs this checker. Reading `pyproject.toml` requires
+Python 3.11 or newer.
 
 Replace the module names, TCP ports, and process terms with those used by your
 project. `check_ports.py` tests binding to `127.0.0.1` by default; pass

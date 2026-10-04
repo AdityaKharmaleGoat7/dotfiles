@@ -34,6 +34,7 @@ dotfiles_scripts_dir="${${(%):-%x}:A:h:h:h}/scripts"
 alias pydebug='python3 "$dotfiles_scripts_dir/debug_env.py"'
 alias pyimports='python3 "$dotfiles_scripts_dir/check_imports.py"'
 alias pydeps='python3 "$dotfiles_scripts_dir/check_dependencies.py"'
+alias deps='python3 "$dotfiles_scripts_dir/check_dependencies.py"'
 alias pyports='python3 "$dotfiles_scripts_dir/check_ports.py"'
 alias pyprocs='python3 "$dotfiles_scripts_dir/check_processes.py"'
 

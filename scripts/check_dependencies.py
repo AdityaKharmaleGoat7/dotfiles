@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Check whether this repo's declared Python packages are installed."""
+"""Check whether this repo's declared Python and Node packages are installed."""
 
 import importlib.metadata
+import json
 import re
 from pathlib import Path
 
@@ -95,39 +96,74 @@ def read_requirements(path, found, seen):
             add_requirement(line, f"{path.name}:{number}", found)
 
 
+def read_package_json(path):
+    data = json.loads(path.read_text(encoding="utf-8"))
+    found = {}
+    optional_peers = data.get("peerDependenciesMeta", {})
+    for section in ("dependencies", "devDependencies", "optionalDependencies", "peerDependencies"):
+        for name in data.get(section, {}):
+            if section == "peerDependencies" and optional_peers.get(name, {}).get("optional"):
+                continue
+            if not re.fullmatch(r"(?:@[A-Za-z0-9._-]+/)?[A-Za-z0-9._-]+", name):
+                raise ValueError(f"Unsupported package name in package.json [{section}]")
+            found.setdefault(name, []).append(section)
+    return found
+
+
+def installed_node_package(repo, name):
+    for directory in (repo, *repo.parents):
+        package_file = directory / "node_modules" / name / "package.json"
+        if package_file.is_file():
+            return package_file
+    return None
+
+
 def main():
     repo = Path.cwd()
-    manifests = [repo / name for name in ("pyproject.toml", "requirements.txt", "requirement.txt")]
+    manifests = [
+        repo / name for name in
+        ("pyproject.toml", "requirements.txt", "requirement.txt", "package.json")
+    ]
     manifests = [path for path in manifests if path.is_file()]
     if not manifests:
-        print("No pyproject.toml, requirements.txt, or requirement.txt found in this directory.")
+        print("No pyproject.toml, requirements.txt, requirement.txt, or package.json found here.")
         return 2
 
-    found = {}
+    python_packages = {}
+    node_packages = {}
     try:
         for path in manifests:
             if path.name == "pyproject.toml":
-                read_pyproject(path, found)
+                read_pyproject(path, python_packages)
+            elif path.name == "package.json":
+                node_packages = read_package_json(path)
             else:
-                read_requirements(path, found, set())
+                read_requirements(path, python_packages, set())
     except (OSError, ValueError) as error:
         print(f"Cannot check dependencies: {error}")
         return 2
 
-    installed = {
+    installed_python = {
         normalized(distribution.metadata["Name"]): distribution.version
         for distribution in importlib.metadata.distributions()
         if distribution.metadata.get("Name")
     }
     missing = False
-    for key, (name, sources) in sorted(found.items()):
-        version = installed.get(key)
+    for key, (name, sources) in sorted(python_packages.items()):
+        version = installed_python.get(key)
         if version is None:
             missing = True
             print(f"MISSING {name} ({', '.join(sources)})")
         else:
             print(f"INSTALLED {name}=={version} ({', '.join(sources)})")
-    if not found:
+    for name, sections in sorted(node_packages.items()):
+        package_file = installed_node_package(repo, name)
+        if package_file is None:
+            missing = True
+            print(f"MISSING {name} (package.json [{', '.join(sections)}])")
+        else:
+            print(f"INSTALLED {name} (package.json [{', '.join(sections)}])")
+    if not python_packages and not node_packages:
         print("No dependencies declared in the detected files.")
     return int(missing)
 
