@@ -46,6 +46,10 @@ codex_source="$repo_dir/config/codex/AGENTS.md"
 codex_dir="$HOME/.codex"
 codex_target="$codex_dir/AGENTS.md"
 codex_backup="$codex_dir/AGENTS.md.pre-dotfiles"
+claude_source="$repo_dir/config/claude/CLAUDE.md"
+claude_dir="$HOME/.claude"
+claude_target="$claude_dir/CLAUDE.md"
+claude_backup="$claude_dir/CLAUDE.md.pre-dotfiles"
 
 install_packages() {
     if ! command -v brew >/dev/null 2>&1; then
@@ -440,6 +444,42 @@ uninstall_codex() {
     done
 }
 
+install_claude() {
+    mkdir -p "$claude_dir"
+
+    if [ -L "$claude_target" ] && [ "$(readlink "$claude_target")" = "$claude_source" ]; then
+        printf 'Claude Code CLAUDE.md is already installed.\n'
+        return
+    fi
+
+    if [ -e "$claude_backup" ] || [ -L "$claude_backup" ]; then
+        printf 'Cannot install Claude Code CLAUDE.md: backup already exists at %s\n' "$claude_backup" >&2
+        exit 1
+    fi
+
+    if [ -e "$claude_target" ] || [ -L "$claude_target" ]; then
+        mv "$claude_target" "$claude_backup"
+        printf 'Backed up existing Claude Code CLAUDE.md to %s\n' "$claude_backup"
+    fi
+
+    ln -s "$claude_source" "$claude_target"
+    printf 'Linked Claude Code CLAUDE.md at %s\n' "$claude_target"
+}
+
+uninstall_claude() {
+    if [ -L "$claude_target" ] && [ "$(readlink "$claude_target")" = "$claude_source" ]; then
+        unlink "$claude_target"
+        printf 'Removed Claude Code CLAUDE.md link at %s\n' "$claude_target"
+
+        if [ -e "$claude_backup" ] || [ -L "$claude_backup" ]; then
+            mv "$claude_backup" "$claude_target"
+            printf 'Restored previous Claude Code CLAUDE.md.\n'
+        fi
+    else
+        printf 'No managed Claude Code CLAUDE.md link found.\n'
+    fi
+}
+
 install_dotfiles() {
     install_packages
     install_shell_config
@@ -462,6 +502,7 @@ install_dotfiles() {
     install_zed
     install_lazygit
     install_codex
+    install_claude
 }
 
 uninstall_dotfiles() {
@@ -488,6 +529,7 @@ uninstall_dotfiles() {
     uninstall_zed
     uninstall_lazygit
     uninstall_codex
+    uninstall_claude
 }
 
 case "${1:-}" in

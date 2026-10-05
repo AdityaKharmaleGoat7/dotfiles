@@ -105,6 +105,25 @@ per-item link helper to do this without an install/uninstall function
 pair per rule and per skill (`install_codex_link` in install.sh;
 `Install-ManagedHardLink`, already generic, reused in install.ps1).
 
+## Claude Code's global instructions get their own file and function pair, not the Codex helper
+
+Codex and Claude Code both want the same generic, cross-project policy
+(`config/codex/AGENTS.md`'s "Global instructions"), but each tool only
+recognizes its own filename in its own directory: `~/.codex/AGENTS.md` for
+Codex, `~/.claude/CLAUDE.md` for Claude Code (confirmed by checking an
+existing `~/.claude` on a machine with Claude Code installed: no
+`CLAUDE.md` anywhere, global or project-level, and no `$XDG_CONFIG_HOME`
+override, same plain-home-directory style as `~/.codex`). The content is
+duplicated into `config/claude/CLAUDE.md` rather than symlinking Claude's
+target at Codex's source, so each tool's config stays independently
+editable, matching the `config/<tool>` convention in AGENTS.md. Unlike
+Codex, Claude Code has no per-file rules/ or skills/ directories to link
+here, so it gets its own dedicated `install_claude`/`uninstall_claude`
+pair (install.sh) and `Install-ClaudeConfig`/`Uninstall-ClaudeConfig`
+pair (install.ps1), the same single-file pattern already used for
+Starship, btop, tmux, and LazyGit, instead of reusing the generic
+per-item helper that Codex's rules/skills multiplicity justified.
+
 ## `install.ps1`'s Dust fallback path is discovered, not hardcoded
 
 Every other Winget-installed tool here (Starship, uv, LazyGit, eza) ends up

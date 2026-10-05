@@ -56,7 +56,8 @@ not configured. Packages are installed through Winget and Scoop.
 - `uv` for Python projects, `dust` for disk usage, and `btop` for monitoring.
   Windows `btop` requires an Administrator terminal.
 - tmux on macOS and Linux; Windows users can use tmux through WSL.
-- Zed settings and shared Zed / Codex agent instructions, rules, and skills.
+- Zed settings and shared Zed / Codex / Claude Code agent instructions, rules,
+  and skills.
 
 Set your Git identity separately:
 
