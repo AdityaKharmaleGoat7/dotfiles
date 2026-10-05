@@ -1,6 +1,6 @@
 # Dotfiles
 
-Shared shell, Git, and tool settings for macOS and Windows.
+Shared shell, Git, and tool settings for macOS, Linux, and Windows.
 Configurations live in [`config/`](config/).
 
 ## Install
@@ -16,6 +16,20 @@ Requires Homebrew. Packages are listed in [`Brewfile`](Brewfile).
 ./install.sh
 source ~/.zshrc
 ```
+
+### Linux
+
+Requires Homebrew. Packages are listed in [`Brewfile`](Brewfile); the
+installer skips the `zed` cask entry, since Homebrew Cask only supports
+macOS.
+
+```sh
+./install.sh
+source ~/.zshrc
+```
+
+Install Zed separately; the installer still generates and links its
+settings.
 
 ### Windows
 
@@ -41,7 +55,7 @@ not configured. Packages are installed through Winget and Scoop.
 - LazyGit (`g ui`), Git graph (`g lg`), and directory listings (`ll`, `la`).
 - `uv` for Python projects, `dust` for disk usage, and `btop` for monitoring.
   Windows `btop` requires an Administrator terminal.
-- tmux on macOS; Windows users can use tmux through WSL.
+- tmux on macOS and Linux; Windows users can use tmux through WSL.
 - Zed settings and shared Zed / Codex agent instructions, rules, and skills.
 
 Set your Git identity separately:
@@ -202,7 +216,7 @@ matches executable names; on macOS and Linux, it also searches command lines.
 
 ## Uninstall
 
-macOS:
+macOS or Linux:
 
 ```sh
 ./install.sh --uninstall

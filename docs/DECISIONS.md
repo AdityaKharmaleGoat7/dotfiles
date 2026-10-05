@@ -153,6 +153,30 @@ Both settings.json and the merge overlay carry Zed's `//` comment-style
 header, which standard JSON parsers (`jq`, `ConvertFrom-Json`) reject, so both
 installers strip lines matching `^\s*//` before parsing.
 
+## `install.sh` strips the `zed` cask line from the Brewfile on Linux
+
+Homebrew Cask only supports macOS; running `brew bundle --file Brewfile`
+with the Linuxbrew `brew` installed would fail to resolve `cask "zed"`.
+`install_packages` now checks `uname` and, on anything other than Darwin,
+copies the Brewfile to a temp file with `cask ` lines removed before
+calling `brew bundle` on that copy, printing a note that Zed needs a
+separate install. This keeps one Brewfile as the source of truth instead
+of forking it per OS. `install_zed`'s existing "Zed is not installed" hint
+is also branched on `uname`, since its old message (`brew bundle --file
+Brewfile`) would send a Linux user straight back into the same cask
+failure.
+
+## `config/zsh/zshrc` adds `/home/linuxbrew/.linuxbrew/bin` to `path`
+
+The existing Homebrew `path` entry only covered
+`/opt/homebrew/bin` (Apple Silicon macOS). Homebrew on Linux
+(Linuxbrew) installs to `/home/linuxbrew/.linuxbrew` instead, and that
+directory isn't on `PATH` by default the way `/usr/local/bin` (Intel
+macOS Homebrew) typically already is. Without this entry, every
+Homebrew-installed tool in the Brewfile (btop, dust, eza, jq, lazygit,
+starship, tmux, uv) would install successfully on Linux but stay
+invisible to the shell.
+
 ## `third_party/` is gitignored, not a submodule
 
 It's a scratch space for cloning other people's repos to read for reference

@@ -53,8 +53,16 @@ install_packages() {
         exit 1
     fi
 
-    printf 'Installing packages from %s/Brewfile\n' "$repo_dir"
-    brew bundle --file "$repo_dir/Brewfile"
+    if [ "$(uname)" = "Darwin" ]; then
+        printf 'Installing packages from %s/Brewfile\n' "$repo_dir"
+        brew bundle --file "$repo_dir/Brewfile"
+    else
+        linux_brewfile=$(mktemp "${TMPDIR:-/tmp}/dotfiles-brewfile.XXXXXX")
+        grep -v '^cask ' "$repo_dir/Brewfile" > "$linux_brewfile"
+        printf 'Installing packages from %s/Brewfile (skipping casks; Homebrew Cask only supports macOS)\n' "$repo_dir"
+        brew bundle --file "$linux_brewfile"
+        rm -f "$linux_brewfile"
+    fi
 }
 
 install_shell_config() {
@@ -285,7 +293,11 @@ install_zed() {
     fi
 
     if ! command -v zed >/dev/null 2>&1; then
-        printf 'Zed is not installed. Run: brew bundle --file "%s/Brewfile"\n' "$repo_dir"
+        if [ "$(uname)" = "Darwin" ]; then
+            printf 'Zed is not installed. Run: brew bundle --file "%s/Brewfile"\n' "$repo_dir"
+        else
+            printf 'Zed is not installed. Install it from https://zed.dev/download\n'
+        fi
     fi
 }
 
