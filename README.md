@@ -207,6 +207,29 @@ does not install packages or validate version constraints. The existing
 `pydeps` alias also runs this checker. Reading `pyproject.toml` requires
 Python 3.11 or newer.
 
+The checker uses a limited, dependency-free requirements parser. It accepts
+package names, extras, version specifier syntax, and named direct references
+(`name @ URL`). It checks the base distribution only; extras do not trigger
+checks of their transitive dependencies. Environment markers, editable or
+unnamed local/archive dependencies, and remote requirements includes are
+unsupported and produce an error rather than a potentially misleading result.
+
+Local requirements includes support `-r file`, `-rfile`, and
+`--requirement=file`, relative to the including file. Repeated includes and
+include cycles are read once. Continuation lines and hash options are accepted;
+constraints and supported index options are ignored. Dependency-group names
+are normalized for comparison; conflicting names and group cycles are errors.
+
+All declared Python extras/groups and Node optional dependencies are checked,
+even if you did not install them. Optional Node peers are excluded. Node lookup
+requires local or parent `node_modules`; Yarn Plug'n'Play is unsupported.
+Exit codes are `0` for all packages present or no declared dependencies, `1`
+for missing packages, and `2` for invalid/unsupported input or no manifests.
+If `pyproject.toml` exists, Python older than 3.11 reports an error even when
+other manifests are present. Use the project's interpreter; do not switch to
+a different Python installation just to obtain TOML support. The `deps` and
+`pydeps` aliases are Zsh-only; PowerShell users use the explicit commands above.
+
 Replace the module names, TCP ports, and process terms with those used by your
 project. `check_ports.py` tests binding to `127.0.0.1` by default; pass
 `--host 0.0.0.0` to check all local IPv4 interfaces. Import, port, and process
@@ -238,6 +261,17 @@ packages and this repository remain.
 Put new tool configurations under `config/<tool>` and update the relevant
 installer. Read [Philosophy](docs/PHILOSOPHY.md) and [agent rules](AGENTS.md);
 background and rationale live in [Decisions](docs/DECISIONS.md).
+
+Dependency-checker tests (standard library only; use Python 3.11+ to include
+TOML parsing tests):
+
+```sh
+python3 -m unittest discover -s tests -p 'test_check_dependencies.py' -v
+```
+
+```powershell
+python -m unittest discover -s tests -p 'test_check_dependencies.py' -v
+```
 
 AI command-routing tests (no AI service required):
 
