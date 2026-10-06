@@ -17,4 +17,6 @@ config/zed/settings.local.json
 # Local reference clones of external repositories
 third_party/
 
+local_keys.txt
+
 notes
