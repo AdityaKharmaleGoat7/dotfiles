@@ -1,0 +1,16 @@
+{
+  "model": "jev-1.13",
+  "answers": {
+    "route": {
+      "type": "choice",
+      "choice": "shell",
+      "probabilities": {
+        "codex": 0.03,
+        "claude": 0.01,
+        "python": 0.06,
+        "shell": 0.9
+      },
+      "confidence": 0.9
+    }
+  }
+}

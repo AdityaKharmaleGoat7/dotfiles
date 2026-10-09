@@ -1,0 +1,18 @@
+{
+  "model": "jev-1.13",
+  "state": {
+    "task_request": "List the files in the current directory."
+  },
+  "questions": {
+    "route": {
+      "type": "choice",
+      "instructions": "Suggest one tool for this task using the study policy. Honor an explicitly requested tool first. Otherwise choose by the work required, preferring shell for a simple command and Python for repeatable data automation.",
+      "criteria": {
+        "codex": "Explicit Codex requests; otherwise repository code changes, debugging, or code review.",
+        "claude": "Explicit Claude requests; otherwise conceptual explanations, planning, or prose without code changes.",
+        "python": "Explicit Python automation requests; otherwise repeatable data processing needing loops, parsing, or transformations.",
+        "shell": "Explicit shell requests; otherwise a straightforward existing command or short pipeline for files, Git, or processes."
+      }
+    }
+  }
+}
