@@ -5,6 +5,7 @@ import json
 import os
 from dataclasses import dataclass
 from typing import Any, Mapping
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 DEFAULT_ENDPOINT = "https://jev-ai.org/api/v1/systemone/"
@@ -41,6 +42,15 @@ class JevClient:
         )
         try:
             with urlopen(request, timeout=self.timeout) as response:
-                return json.loads(response.read().decode("utf-8"))
-        except Exception as exc:
-            raise JevError(f"Jev API request failed: {exc}") from exc
+                result = json.loads(response.read().decode("utf-8"))
+        except HTTPError as exc:
+            raise JevError(f"Jev API request failed with HTTP {exc.code}.") from exc
+        except (URLError, TimeoutError, OSError) as exc:
+            raise JevError("Could not reach Jev API. Check the connection and try again.") from exc
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise JevError("Jev API returned invalid JSON.") from exc
+        if not isinstance(result, dict) or not isinstance(result.get("answers"), dict):
+            raise JevError("Jev API response is missing an answers object.")
+        if set(result["answers"]) != set(questions):
+            raise JevError("Jev API response does not match the requested questions.")
+        return result
