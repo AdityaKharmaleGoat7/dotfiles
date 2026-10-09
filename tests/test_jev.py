@@ -29,6 +29,7 @@ def load(name: str, filename: str):
 client_mod = load("jev_client", "client.py")
 sys.modules["client"] = client_mod
 risk_mod = load("jev_commit_risk", "commit_risk.py")
+router_mod = load("jev_task_router", "task_router.py")
 
 
 class FakeResponse:
@@ -92,6 +93,8 @@ class JevClientTests(unittest.TestCase):
                 with self.assertRaisesRegex(client_mod.JevError, message) as raised:
                     client_mod.JevClient().decide({}, {"risk": {"type": "choice"}})
                 self.assertNotIn("test-secret", str(raised.exception))
+            if isinstance(error, HTTPError):
+                error.close()
 
     def test_invalid_json_is_rejected(self):
         response = FakeResponse(None)
@@ -192,6 +195,112 @@ class CommitRiskTests(unittest.TestCase):
             diff = captured["payload"]["state"]["staged_git_diff"]
             self.assertIn("+staged content", diff)
             self.assertNotIn("unstaged content", diff)
+
+
+class TaskRouterTests(unittest.TestCase):
+    def test_empty_and_large_requests_are_rejected_before_api_call(self):
+        for request in ("", " \n\t ", "x" * (router_mod.MAX_REQUEST_CHARS + 1)):
+            client = Mock()
+            with self.subTest(length=len(request)), self.assertRaises(ValueError):
+                router_mod.classify(request, client)
+            client.decide.assert_not_called()
+
+    def test_each_route_is_accepted_and_metadata_is_preserved(self):
+        for route in ("codex", "claude", "python", "shell"):
+            response = {
+                "answers": {"route": {"type": "choice", "choice": route}},
+                "model_version": "test-version",
+                "usage": {"input_tokens": 100},
+            }
+            client = Mock()
+            client.decide.return_value = response
+            with self.subTest(route=route):
+                self.assertEqual(router_mod.classify("A task", client), response)
+
+    def test_limit_sized_request_is_sent_in_full(self):
+        client = Mock()
+        client.decide.return_value = {"answers": {"route": {"type": "choice", "choice": "codex"}}}
+        request = "x" * router_mod.MAX_REQUEST_CHARS
+        router_mod.classify(request, client)
+        sent = client.decide.call_args.kwargs
+        self.assertEqual(sent["state"], {"task_request": request})
+        self.assertEqual(sent["questions"]["route"]["type"], "choice")
+        self.assertEqual(set(sent["questions"]["route"]["criteria"]), {"codex", "claude", "python", "shell"})
+
+    def test_invalid_routes_are_rejected(self):
+        for answer in (None, [], {}, {"type": "score", "choice": "codex"}, {"type": "choice", "choice": "opencode"}):
+            client = Mock()
+            client.decide.return_value = {"answers": {"route": answer}}
+            with self.subTest(answer=answer), self.assertRaisesRegex(client_mod.JevError, "invalid task route"):
+                router_mod.classify("A task", client)
+
+    def test_cli_errors_leave_stdout_empty(self):
+        for error in (ValueError("Empty request"), client_mod.JevError("HTTP 401")):
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with self.subTest(error=type(error).__name__), patch.object(router_mod, "classify", side_effect=error), redirect_stdout(stdout), redirect_stderr(stderr):
+                self.assertEqual(router_mod.main(["A task"]), 2)
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertIn("jev-route:", stderr.getvalue())
+
+    def test_cli_help_and_missing_argument_need_no_key(self):
+        script = JEV_DIR / "task_router.py"
+        for arguments, status in ((["--help"], 0), ([], 2)):
+            with self.subTest(arguments=arguments):
+                proc = subprocess.run(
+                    [sys.executable, "-B", str(script), *arguments],
+                    env={key: value for key, value in os.environ.items() if key != "JEV_API_KEY"},
+                    capture_output=True, text=True,
+                )
+                self.assertEqual(proc.returncode, status)
+                if status == 2:
+                    self.assertEqual(proc.stdout, "")
+                else:
+                    self.assertIn("without executing", proc.stdout)
+
+    def test_task_request_flows_through_http_to_json_without_execution(self):
+        response = {
+            "answers": {
+                "route": {
+                    "type": "choice", "choice": "shell",
+                    "probabilities": {"codex": 0.03, "claude": 0.01, "python": 0.06, "shell": 0.9},
+                    "confidence": 0.9,
+                }
+            }
+        }
+        captured = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                captured["payload"] = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                captured["path"] = self.path
+                captured["auth"] = self.headers["Authorization"]
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(response).encode())
+
+            def log_message(self, *args):
+                pass
+
+        with tempfile.TemporaryDirectory() as directory, HTTPServer(("127.0.0.1", 0), Handler) as server:
+            marker = Path(directory) / "must-not-exist"
+            task = f"Run touch '{marker}'"
+            client = client_mod.JevClient(endpoint=f"http://127.0.0.1:{server.server_port}/api/v1/systemone/")
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            stdout, stderr = io.StringIO(), io.StringIO()
+            try:
+                with patch.dict(os.environ, {"JEV_API_KEY": "test-secret"}, clear=True), patch.object(router_mod, "JevClient", return_value=client), redirect_stdout(stdout), redirect_stderr(stderr):
+                    self.assertEqual(router_mod.main([task]), 0)
+            finally:
+                server.shutdown()
+                thread.join()
+            self.assertFalse(marker.exists())
+            self.assertEqual(json.loads(stdout.getvalue()), response)
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertEqual(captured["payload"]["state"], {"task_request": task})
+            self.assertEqual(captured["path"], "/api/v1/systemone/")
+            self.assertEqual(captured["auth"], "Bearer test-secret")
 
 
 if __name__ == "__main__":
