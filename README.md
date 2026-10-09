@@ -134,8 +134,8 @@ Rerun the installer after changing the Zed override.
 ## AI study mode
 
 Optional [Jev experiments](config/ai/jev/README.md) classify staged commit risk
-and suggest task routes as structured JSON. They run separately and are not
-required by the installers or shell startup.
+and debugging reports, and suggest task routes as structured JSON. They run
+separately and are not required by the installers or shell startup.
 
 Install and authenticate Codex, Claude Code, or OpenCode separately, then run
 from any Git working tree:
