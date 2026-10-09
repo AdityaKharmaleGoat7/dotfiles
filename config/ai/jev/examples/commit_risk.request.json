@@ -1,0 +1,17 @@
+{
+  "model": "jev-1.13",
+  "state": {
+    "staged_git_diff": "diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-# Dotfile\n+# Dotfiles\n"
+  },
+  "questions": {
+    "risk": {
+      "type": "choice",
+      "instructions": "Classify the regression risk of committing these staged changes.",
+      "criteria": {
+        "low": "Small or isolated change with low regression risk.",
+        "medium": "Meaningful change that deserves careful review or targeted tests.",
+        "high": "Potentially breaking, security-sensitive, destructive, or wide-impact change."
+      }
+    }
+  }
+}
