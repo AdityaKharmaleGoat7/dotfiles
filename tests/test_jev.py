@@ -30,6 +30,7 @@ client_mod = load("jev_client", "client.py")
 sys.modules["client"] = client_mod
 risk_mod = load("jev_commit_risk", "commit_risk.py")
 router_mod = load("jev_task_router", "task_router.py")
+debug_mod = load("jev_debug_classifier", "debug_classifier.py")
 
 
 class FakeResponse:
@@ -299,6 +300,119 @@ class TaskRouterTests(unittest.TestCase):
             self.assertEqual(json.loads(stdout.getvalue()), response)
             self.assertEqual(stderr.getvalue(), "")
             self.assertEqual(captured["payload"]["state"], {"task_request": task})
+            self.assertEqual(captured["path"], "/api/v1/systemone/")
+            self.assertEqual(captured["auth"], "Bearer test-secret")
+
+
+class DebugClassifierTests(unittest.TestCase):
+    def test_empty_and_large_descriptions_are_rejected_before_api_call(self):
+        for description in ("", " \n\t ", "x" * (debug_mod.MAX_DESCRIPTION_CHARS + 1)):
+            client = Mock()
+            with self.subTest(length=len(description)), self.assertRaises(ValueError):
+                debug_mod.classify(description, client)
+            client.decide.assert_not_called()
+
+    def test_each_category_is_accepted_and_metadata_is_preserved(self):
+        for category in ("dependency", "environment", "syntax", "network", "permissions", "configuration"):
+            response = {
+                "answers": {"category": {"type": "choice", "choice": category}},
+                "model_version": "test-version",
+                "usage": {"input_tokens": 100},
+            }
+            client = Mock()
+            client.decide.return_value = response
+            with self.subTest(category=category):
+                self.assertEqual(debug_mod.classify("An observed failure", client), response)
+
+    def test_limit_sized_description_is_sent_in_full(self):
+        client = Mock()
+        client.decide.return_value = {"answers": {"category": {"type": "choice", "choice": "syntax"}}}
+        description = "x" * debug_mod.MAX_DESCRIPTION_CHARS
+        debug_mod.classify(description, client)
+        sent = client.decide.call_args.kwargs
+        self.assertEqual(sent["state"], {"problem_description": description})
+        self.assertEqual(sent["questions"]["category"]["type"], "choice")
+        self.assertEqual(
+            set(sent["questions"]["category"]["criteria"]),
+            {"dependency", "environment", "syntax", "network", "permissions", "configuration"},
+        )
+
+    def test_invalid_categories_are_rejected(self):
+        for answer in (None, [], {}, {"type": "score", "choice": "syntax"}, {"type": "choice", "choice": "unknown"}):
+            client = Mock()
+            client.decide.return_value = {"answers": {"category": answer}}
+            with self.subTest(answer=answer), self.assertRaisesRegex(client_mod.JevError, "invalid debugging category"):
+                debug_mod.classify("An observed failure", client)
+
+    def test_cli_errors_leave_stdout_empty(self):
+        for error in (ValueError("Empty description"), client_mod.JevError("HTTP 401")):
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with self.subTest(error=type(error).__name__), patch.object(debug_mod, "classify", side_effect=error), redirect_stdout(stdout), redirect_stderr(stderr):
+                self.assertEqual(debug_mod.main(["An observed failure"]), 2)
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertIn("jev-debug:", stderr.getvalue())
+
+    def test_cli_usage_and_missing_key(self):
+        script = JEV_DIR / "debug_classifier.py"
+        for arguments, status in ((["--help"], 0), ([], 2), (["An observed failure"], 2)):
+            with self.subTest(arguments=arguments):
+                proc = subprocess.run(
+                    [sys.executable, "-B", str(script), *arguments],
+                    env={key: value for key, value in os.environ.items() if key != "JEV_API_KEY"},
+                    capture_output=True, text=True,
+                )
+                self.assertEqual(proc.returncode, status)
+                if status == 2:
+                    self.assertEqual(proc.stdout, "")
+                    self.assertTrue(proc.stderr)
+                else:
+                    self.assertIn("without applying fixes", proc.stdout)
+
+    def test_description_flows_through_http_to_json_without_execution(self):
+        response = {
+            "answers": {
+                "category": {
+                    "type": "choice", "choice": "permissions",
+                    "probabilities": {
+                        "dependency": 0.02, "environment": 0.02, "syntax": 0.01,
+                        "network": 0.01, "permissions": 0.9, "configuration": 0.04,
+                    },
+                    "confidence": 0.9,
+                }
+            }
+        }
+        captured = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                captured["payload"] = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                captured["path"] = self.path
+                captured["auth"] = self.headers["Authorization"]
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(response).encode())
+
+            def log_message(self, *args):
+                pass
+
+        with tempfile.TemporaryDirectory() as directory, HTTPServer(("127.0.0.1", 0), Handler) as server:
+            marker = Path(directory) / "must-not-exist"
+            description = f"touch '{marker}'"
+            client = client_mod.JevClient(endpoint=f"http://127.0.0.1:{server.server_port}/api/v1/systemone/")
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            stdout, stderr = io.StringIO(), io.StringIO()
+            try:
+                with patch.dict(os.environ, {"JEV_API_KEY": "test-secret"}, clear=True), patch.object(debug_mod, "JevClient", return_value=client), redirect_stdout(stdout), redirect_stderr(stderr):
+                    self.assertEqual(debug_mod.main([description]), 0)
+            finally:
+                server.shutdown()
+                thread.join()
+            self.assertFalse(marker.exists())
+            self.assertEqual(json.loads(stdout.getvalue()), response)
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertEqual(captured["payload"]["state"], {"problem_description": description})
             self.assertEqual(captured["path"], "/api/v1/systemone/")
             self.assertEqual(captured["auth"], "Bearer test-secret")
 
