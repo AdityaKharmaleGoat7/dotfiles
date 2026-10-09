@@ -1,11 +1,17 @@
 import importlib.util
+import io
 import json
 import os
 import sys
+import subprocess
+import tempfile
+import threading
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 JEV_DIR = ROOT / "config" / "ai" / "jev"
@@ -100,8 +106,92 @@ class JevClientTests(unittest.TestCase):
                     client_mod.JevClient().decide({}, {"risk": {"type": "choice"}})
 
     def test_commit_risk_rejects_empty_diff_before_api_call(self):
+        client = Mock()
         with self.assertRaises(ValueError):
-            risk_mod.classify("   ")
+            risk_mod.classify("   ", client)
+        client.decide.assert_not_called()
+
+
+class CommitRiskTests(unittest.TestCase):
+    def test_large_diff_is_rejected_before_api_call(self):
+        client = Mock()
+        with self.assertRaisesRegex(ValueError, "Stage a smaller change"):
+            risk_mod.classify("x" * (risk_mod.MAX_DIFF_CHARS + 1), client)
+        client.decide.assert_not_called()
+
+    def test_limit_sized_diff_is_sent_in_full(self):
+        response = {"answers": {"risk": {"type": "choice", "choice": "medium"}}}
+        client = Mock()
+        client.decide.return_value = response
+        diff = "x" * risk_mod.MAX_DIFF_CHARS
+        self.assertEqual(risk_mod.classify(diff, client), response)
+        request = client.decide.call_args.kwargs
+        self.assertEqual(request["state"], {"staged_git_diff": diff})
+        self.assertEqual(set(request["questions"]["risk"]["criteria"]), {"low", "medium", "high"})
+
+    def test_invalid_risk_choices_are_rejected(self):
+        for answer in (None, [], {}, {"type": "score", "choice": "low"}, {"type": "choice", "choice": "unknown"}):
+            client = Mock()
+            client.decide.return_value = {"answers": {"risk": answer}}
+            with self.subTest(answer=answer), self.assertRaisesRegex(client_mod.JevError, "invalid risk choice"):
+                risk_mod.classify("diff", client)
+
+    def test_cli_failures_leave_stdout_empty(self):
+        for error in (ValueError("No staged changes"), client_mod.JevError("HTTP 401"), subprocess.CalledProcessError(128, "git")):
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with self.subTest(error=type(error).__name__), patch.object(risk_mod, "staged_diff", side_effect=error), redirect_stdout(stdout), redirect_stderr(stderr):
+                self.assertEqual(risk_mod.main(), 2)
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertIn("jev-risk:", stderr.getvalue())
+
+    def test_staged_git_diff_flows_through_http_to_json_output(self):
+        response = {
+            "answers": {
+                "risk": {
+                    "type": "choice", "choice": "low",
+                    "probabilities": {"low": 0.9, "medium": 0.08, "high": 0.02},
+                    "confidence": 0.9,
+                }
+            }
+        }
+        captured = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                captured["path"] = self.path
+                captured["auth"] = self.headers["Authorization"]
+                captured["payload"] = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(response).encode())
+
+            def log_message(self, *args):
+                pass
+
+        with tempfile.TemporaryDirectory() as directory, HTTPServer(("127.0.0.1", 0), Handler) as server:
+            repo = Path(directory)
+            subprocess.run(["git", "init", "--quiet", str(repo)], check=True, capture_output=True)
+            (repo / "example.txt").write_text("staged content\n")
+            subprocess.run(["git", "add", "--", "example.txt"], cwd=repo, check=True, capture_output=True)
+            (repo / "example.txt").write_text("unstaged content\n")
+            client = client_mod.JevClient(endpoint=f"http://127.0.0.1:{server.server_port}/api/v1/systemone/")
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            stdout, stderr = io.StringIO(), io.StringIO()
+            try:
+                with patch.dict(os.environ, {"JEV_API_KEY": "test-secret"}, clear=True), patch.object(risk_mod.Path, "cwd", return_value=repo), patch.object(risk_mod, "JevClient", return_value=client), redirect_stdout(stdout), redirect_stderr(stderr):
+                    self.assertEqual(risk_mod.main(), 0)
+            finally:
+                server.shutdown()
+                thread.join()
+            self.assertEqual(json.loads(stdout.getvalue()), response)
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertEqual(captured["path"], "/api/v1/systemone/")
+            self.assertEqual(captured["auth"], "Bearer test-secret")
+            diff = captured["payload"]["state"]["staged_git_diff"]
+            self.assertIn("+staged content", diff)
+            self.assertNotIn("unstaged content", diff)
 
 
 if __name__ == "__main__":
