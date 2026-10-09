@@ -1,8 +1,9 @@
 # Jev implementation summary
 
-Jev has two standalone experiments in this repository: staged commit risk
-classification and advisory task routing. Both reuse a Python client and
-return structured JSON. They require Python 3.10+ and no third-party packages.
+Jev has three standalone experiments in this repository: staged commit risk
+classification, advisory task routing, and debugging classification. All reuse
+a Python client and return structured JSON. They require Python 3.10+ and no
+third-party packages.
 
 ## Shared API client
 
@@ -49,23 +50,39 @@ prints a suggestion for human review and does not execute the task.
 python3 -B config/ai/jev/task_router.py "List the files in the current directory."
 ```
 
+## Debugging classification
+
+[debug_classifier.py](debug_classifier.py) accepts an error description and
+relevant context. It suggests `dependency`, `environment`, `syntax`, `network`,
+`permissions`, or `configuration` as the area to investigate.
+
+Empty descriptions and descriptions over 60,000 characters are rejected before
+an API call. The classifier sends accepted input in full and validates the
+returned category. It does not collect logs, execute commands, or apply fixes.
+Overlapping categories require human review; the result is not a confirmed
+root cause.
+
+```sh
+python3 -B config/ai/jev/debug_classifier.py "ModuleNotFoundError: No module named 'requests'"
+```
+
 ## Output and examples
 
-Both commands exit with status `0` and print JSON to stdout on success.
+All three commands exit with status `0` and print JSON to stdout on success.
 Classification failures exit with status `2`, print diagnostics to stderr,
 and leave stdout empty.
 
 The [examples directory](examples/) contains request and response JSON for
-both experiments. Responses are synthetic examples, not recorded live results.
+all three experiments. Responses are synthetic examples, not recorded live results.
 The [study README](README.md) contains setup instructions and evaluation steps.
 
 ## Verification
 
-[tests/test_jev.py](../../../tests/test_jev.py) contains 19 tests covering
+[tests/test_jev.py](../../../tests/test_jev.py) contains 26 tests covering
 authentication, request limits, malformed responses, valid labels, CLI output,
-and errors. Local HTTP integration tests exercise both experiments. The commit
+and errors. Local HTTP integration tests exercise all three experiments. The commit
 risk test uses a temporary Git repository to verify that unstaged edits are
-excluded. The routing test checks that task text is not executed.
+excluded. The routing and debugging tests check that supplied text is not executed.
 
 ```sh
 python3 -B -m unittest discover -s tests -p 'test_jev.py' -v
@@ -80,6 +97,6 @@ The deterministic integration has been tested locally. Live API verification
 and measurements of accuracy, cost, and latency remain pending because
 `JEV_API_KEY` was unavailable during implementation.
 
-The current conclusion is to keep both isolated experiments for evaluation.
-Debugging and repository health classifiers remain deferred. Neither
-experiment is required by the installers or called during normal shell startup.
+The current conclusion is to keep all three isolated experiments for evaluation.
+Repository health classification remains deferred. None of these
+experiments is required by the installers or called during normal shell startup.

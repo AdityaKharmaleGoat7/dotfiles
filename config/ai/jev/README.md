@@ -78,6 +78,38 @@ stdout with status `0`, and failures write to stderr with status `2`. Calls
 require the same local key and use your Jev balance; there are no retries.
 Use `--help` without a key to see the command's usage.
 
+## Third experiment: debugging classification
+
+Provide an error and relevant context as a quoted description:
+
+```sh
+python3 -B config/ai/jev/debug_classifier.py "ModuleNotFoundError: No module named 'requests'"
+```
+
+The command sends only that description to Jev and prints the response as
+JSON. Read `answers.category.choice` for the suggested area to investigate:
+
+| Category | Evidence to investigate |
+| --- | --- |
+| `dependency` | Missing packages or incompatible dependency versions |
+| `environment` | Wrong interpreter, virtual environment, PATH, directory, or OS |
+| `syntax` | Invalid grammar, indentation, or delimiters preventing parsing |
+| `network` | DNS, connection, TLS, or service timeout failures |
+| `permissions` | File, process, or service access denied |
+| `configuration` | Missing, invalid, or inconsistent application settings |
+
+The question asks for the category best supported by the observed failure.
+Categories can overlap: a missing import can result from a missing dependency
+or the wrong virtual environment. Include context and review the returned
+probabilities and confidence. The label is a debugging suggestion, not a
+confirmed root cause. The command does not collect logs, inspect files,
+execute supplied text, or apply fixes.
+
+Empty descriptions and descriptions over 60,000 characters fail before an
+API call. Accepted input is sent in full. Success writes JSON to stdout with
+status `0`; errors write to stderr with status `2`. The command uses the same
+local API key and Jev balance, with no automatic retries. `--help` needs no key.
+
 ## Examples and verification
 
 [Example request](examples/commit_risk.request.json) shows the state and risk
@@ -88,6 +120,10 @@ shows a synthetic answer, not an observed Jev result or accuracy measurement.
 [task-routing response](examples/task_router.response.json) illustrate the
 second experiment. That response is also synthetic. The tests check integration
 behavior, not whether Jev agrees with the study policy on real tasks.
+
+[Debugging request](examples/debug_classifier.request.json) and
+[debugging response](examples/debug_classifier.response.json) illustrate the
+third experiment. This response is synthetic as well.
 
 Run the tests from the repository root without an API key:
 
@@ -106,6 +142,10 @@ Task-router tests also check all four allowed labels, invalid answers, complete
 input at the size limit, CLI usage, and errors. A local HTTP test confirms that
 command text is sent as data and is never executed.
 
+Debugging tests cover all six categories, invalid answers, empty and oversized
+input, CLI usage and errors, and missing credentials. A local HTTP test checks
+the description-to-JSON path and verifies that command text is not executed.
+
 For a live check, export `JEV_API_KEY` locally, stage a small non-sensitive
 change, and run `python3 -B config/ai/jev/commit_risk.py`. Confirm `answers.risk.choice`
 contains a valid label, inspect its probabilities, and record the response
@@ -119,12 +159,18 @@ and explicit tool preferences. Record the expected route before the call, then
 compare it with the selected label and probability distribution. No routing
 accuracy has been measured yet.
 
+For a live debugging evaluation, use sanitized failures with known causes
+from each category. Include ambiguous cases such as a missing package in the
+wrong virtual environment. Record the expected category before the call and
+compare it with the response. No debugging accuracy has been measured yet.
+
 ## Architecture
 
 - `client.py`: reusable standard-library HTTP client; reads `JEV_API_KEY` only at request time.
 - `commit_risk.py`: useful Git-oriented experiment built on top of the client.
 - `task_router.py`: standalone advisory task-routing experiment.
-- `examples/`: synthetic request and response JSON for both experiments.
+- `debug_classifier.py`: standalone advisory debugging classifier.
+- `examples/`: synthetic request and response JSON for all three experiments.
 - `tests/test_jev.py`: unit tests and local HTTP integration tests; no Jev credits used.
 
 ## Decision rule
@@ -137,17 +183,17 @@ or an explanation. Actual quality and performance advantages need measurement.
 
 ## Study conclusion
 
-**Keep** the two isolated experiments for evaluation; defer additional
-classifiers. Task routing is the second narrow experiment requested in
+**Keep** the three isolated experiments for evaluation; defer additional
+classifiers. Commit risk, task routing, and debugging classification come from
 [issue #8](https://github.com/AdityaKharmaleGoat7/dotfiles/issues/8).
 Local tests establish that the deterministic integrations work, including
-staged-only diff input, advisory routing, and machine-readable output. They
+staged-only diff input, advisory classification, and machine-readable output. They
 do not establish model accuracy or a benefit over an ordinary LLM call.
 
 Live verification remains pending: `JEV_API_KEY` was unavailable during this
 study. The example responses are synthetic. Keep this conclusion provisional
 until real use provides evidence to expand or remove the experiment.
 
-Debugging classification and repository-health classification
-are deferred until these experiments prove useful. Neither installer nor
+Repository-health classification
+is deferred until these experiments prove useful. Neither installer nor
 normal shell startup calls Jev.
