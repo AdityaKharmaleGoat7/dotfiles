@@ -133,6 +133,10 @@ Rerun the installer after changing the Zed override.
 
 ## AI study mode
 
+An optional [Jev commit-risk experiment](config/ai/jev/README.md) classifies
+staged changes as structured JSON. It runs separately and is not required by
+the installers or shell startup.
+
 Install and authenticate Codex, Claude Code, or OpenCode separately, then run
 from any Git working tree:
 
@@ -271,6 +275,12 @@ python3 -m unittest discover -s tests -p 'test_check_dependencies.py' -v
 
 ```powershell
 python -m unittest discover -s tests -p 'test_check_dependencies.py' -v
+```
+
+Jev experiment tests (standard library only; no API key or credits required):
+
+```sh
+python3 -B -m unittest discover -s tests -p 'test_jev.py' -v
 ```
 
 AI command-routing tests (no AI service required):

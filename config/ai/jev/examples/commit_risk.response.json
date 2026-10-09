@@ -1,0 +1,15 @@
+{
+  "model": "jev-1.13",
+  "answers": {
+    "risk": {
+      "type": "choice",
+      "choice": "low",
+      "probabilities": {
+        "low": 0.9,
+        "medium": 0.08,
+        "high": 0.02
+      },
+      "confidence": 0.9
+    }
+  }
+}
