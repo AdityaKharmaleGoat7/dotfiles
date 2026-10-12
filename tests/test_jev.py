@@ -49,9 +49,38 @@ class FakeResponse:
 
 class JevClientTests(unittest.TestCase):
     def test_missing_api_key_is_rejected(self):
-        with patch.dict(os.environ, {}, clear=True):
+        with patch.dict(os.environ, {}, clear=True), patch.object(Path, "read_text", side_effect=FileNotFoundError):
             with self.assertRaises(client_mod.JevError):
                 client_mod.JevClient().decide({}, {"q": {"type": "choice"}})
+
+    def test_all_modules_authenticate_with_local_key_file(self):
+        cases = (
+            (risk_mod.classify, "diff --git a/example b/example", "risk", "low"),
+            (router_mod.classify, "List files", "route", "shell"),
+            (debug_mod.classify, "Permission denied", "category", "permissions"),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            key_file = Path(directory) / "keys.local"
+            key_file.write_text("OTHER_SETTING=ignored\nJEV_API_KEY=test-file-secret\n", encoding="utf-8")
+            for classify, state, question, choice in cases:
+                response = {"answers": {question: {"type": "choice", "choice": choice}}}
+                with self.subTest(module=question), patch.dict(os.environ, {"JEV_API_KEY_FILE": str(key_file)}, clear=True), patch.object(client_mod, "urlopen", return_value=FakeResponse(response)) as send:
+                    self.assertEqual(classify(state), response)
+                    self.assertEqual(send.call_args.args[0].headers["Authorization"], "Bearer test-file-secret")
+
+    def test_environment_key_takes_precedence_without_reading_file(self):
+        with patch.dict(os.environ, {"JEV_API_KEY": "test-env-secret"}, clear=True), patch.object(Path, "read_text") as read, patch.object(client_mod, "urlopen", return_value=FakeResponse({"answers": {"q": {}}})) as send:
+            client_mod.JevClient().decide({}, {"q": {"type": "choice"}})
+            read.assert_not_called()
+            self.assertEqual(send.call_args.args[0].headers["Authorization"], "Bearer test-env-secret")
+
+    def test_invalid_key_files_fail_without_http_or_secret_output(self):
+        for contents in ("OTHER_KEY=test-file-secret\n", "JEV_API_KEY=\n"):
+            with self.subTest(contents=contents), patch.dict(os.environ, {}, clear=True), patch.object(Path, "read_text", return_value=contents), patch.object(client_mod, "urlopen") as send:
+                with self.assertRaises(client_mod.JevError) as raised:
+                    client_mod.JevClient().decide({}, {"q": {"type": "choice"}})
+                self.assertNotIn("test-file-secret", str(raised.exception))
+                send.assert_not_called()
 
     def test_request_uses_bearer_auth_without_returning_key(self):
         captured = {}
@@ -102,6 +131,19 @@ class JevClientTests(unittest.TestCase):
         with patch.dict(os.environ, {"JEV_API_KEY": "test-secret"}, clear=True), patch.object(response, "read", return_value=b"not JSON"), patch.object(client_mod, "urlopen", return_value=response):
             with self.assertRaisesRegex(client_mod.JevError, "invalid JSON"):
                 client_mod.JevClient().decide({}, {"risk": {"type": "choice"}})
+
+    def test_authentication_errors_report_only_known_reasons(self):
+        reasons = ("missing_bearer", "empty_token", "unknown_key", "wrong_key_type", "disabled", "revoked", "test-secret")
+        for reason in reasons:
+            body = io.BytesIO(json.dumps({"error": {"reason": reason, "message": "test-secret"}}).encode())
+            error = HTTPError(client_mod.DEFAULT_ENDPOINT, 401, "test-secret", {}, body)
+            with self.subTest(reason=reason), patch.dict(os.environ, {"JEV_API_KEY": "test-secret"}, clear=True), patch.object(client_mod, "urlopen", side_effect=error):
+                with self.assertRaises(client_mod.JevError) as raised:
+                    client_mod.JevClient().decide({}, {"risk": {"type": "choice"}})
+                self.assertNotIn("test-secret", str(raised.exception))
+                if reason != "test-secret":
+                    self.assertIn(reason, str(raised.exception))
+            error.close()
 
     def test_invalid_response_envelopes_are_rejected(self):
         for payload in ([], {}, {"answers": []}, {"answers": {}}, {"answers": {"other": {}}}):
@@ -354,11 +396,15 @@ class DebugClassifierTests(unittest.TestCase):
 
     def test_cli_usage_and_missing_key(self):
         script = JEV_DIR / "debug_classifier.py"
+        with tempfile.TemporaryDirectory() as directory:
+            self.check_cli_usage_and_missing_key(script, Path(directory) / "missing.local")
+
+    def check_cli_usage_and_missing_key(self, script, key_file):
         for arguments, status in ((["--help"], 0), ([], 2), (["An observed failure"], 2)):
             with self.subTest(arguments=arguments):
                 proc = subprocess.run(
                     [sys.executable, "-B", str(script), *arguments],
-                    env={key: value for key, value in os.environ.items() if key != "JEV_API_KEY"},
+                    env={**{key: value for key, value in os.environ.items() if key != "JEV_API_KEY"}, "JEV_API_KEY_FILE": str(key_file)},
                     capture_output=True, text=True,
                 )
                 self.assertEqual(proc.returncode, status)

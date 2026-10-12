@@ -13,12 +13,15 @@ label, probabilities, and confidence in the response. See the
 
 ## Setup
 
-Use Python 3.10+; no third-party packages are required. Create a Jev API key
-in your Jev account and expose it only as a local environment variable named
-`JEV_API_KEY`. Read it from your local secret store or shell configuration;
-never paste the key into a tracked file.
+Use Python 3.10+; no third-party packages are required. All three modules use
+the same credentials. An exported `JEV_API_KEY` takes precedence. Otherwise,
+the client loads the `JEV_API_KEY=...` entry from `local_keys.txt` at the
+repository root, regardless of your working directory. The file is read only
+when making a request; its contents are parsed as data, never executed.
 
-Do not put the key in this repository. The root `.gitignore` already excludes `.env`, `.env.*`, `*.secret`, and `*.local` files.
+To keep credentials outside the repository, export `JEV_API_KEY_FILE` with
+the path to a private file containing that entry. Never commit the key.
+The existing `local_keys.txt` is Git-ignored.
 
 ## First experiment: staged commit risk
 
@@ -166,7 +169,7 @@ compare it with the response. No debugging accuracy has been measured yet.
 
 ## Architecture
 
-- `client.py`: reusable standard-library HTTP client; reads `JEV_API_KEY` only at request time.
+- `client.py`: reusable standard-library HTTP client; loads the environment or local key file only at request time.
 - `commit_risk.py`: useful Git-oriented experiment built on top of the client.
 - `task_router.py`: standalone advisory task-routing experiment.
 - `debug_classifier.py`: standalone advisory debugging classifier.

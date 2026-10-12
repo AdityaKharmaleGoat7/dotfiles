@@ -4,12 +4,14 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Mapping
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 DEFAULT_ENDPOINT = "https://jev-ai.org/api/v1/systemone/"
 DEFAULT_MODEL = "jev-1.13"
+DEFAULT_KEY_FILE = Path(__file__).resolve().parents[3] / "local_keys.txt"
 
 
 class JevError(RuntimeError):
@@ -25,7 +27,20 @@ class JevClient:
     def decide(self, state: Any, questions: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
         api_key = os.environ.get("JEV_API_KEY")
         if not api_key:
-            raise JevError("JEV_API_KEY is not set. Export it locally before using Jev.")
+            key_file = Path(os.environ.get("JEV_API_KEY_FILE", DEFAULT_KEY_FILE))
+            try:
+                lines = key_file.read_text(encoding="utf-8").splitlines()
+            except FileNotFoundError:
+                lines = []
+            except (OSError, UnicodeError):
+                raise JevError("Could not read the Jev key file.") from None
+            for line in lines:
+                name, separator, value = line.partition("=")
+                if separator and name.strip() == "JEV_API_KEY":
+                    api_key = value.strip()
+                    break
+        if not api_key:
+            raise JevError("JEV_API_KEY is not set. Export it locally or add it to the Jev key file.")
         if not questions or len(questions) > 20:
             raise ValueError("questions must contain between 1 and 20 entries")
 
@@ -44,7 +59,16 @@ class JevClient:
             with urlopen(request, timeout=self.timeout) as response:
                 result = json.loads(response.read().decode("utf-8"))
         except HTTPError as exc:
-            raise JevError(f"Jev API request failed with HTTP {exc.code}.") from exc
+            reason = ""
+            if exc.code == 401:
+                try:
+                    error = json.load(exc).get("error", {})
+                    code = error.get("reason") if isinstance(error, dict) else None
+                    if code in ("missing_bearer", "empty_token", "unknown_key", "wrong_key_type", "disabled", "revoked"):
+                        reason = f" ({code})"
+                except (ValueError, UnicodeError, OSError, AttributeError):
+                    pass
+            raise JevError(f"Jev API request failed with HTTP {exc.code}{reason}.") from exc
         except (URLError, TimeoutError, OSError) as exc:
             raise JevError("Could not reach Jev API. Check the connection and try again.") from exc
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:

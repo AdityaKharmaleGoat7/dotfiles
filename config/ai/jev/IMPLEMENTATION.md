@@ -8,8 +8,10 @@ third-party packages.
 ## Shared API client
 
 [client.py](client.py) sends state and typed questions to Jev using HTTP POST.
-It reads `JEV_API_KEY` from the environment when making a request and uses
-Bearer authentication. Its default model is `jev-1.13`, with a 30-second
+It reads `JEV_API_KEY` from the environment when making a request, falling
+back to the `JEV_API_KEY=...` entry in the repository's `local_keys.txt`.
+`JEV_API_KEY_FILE` can point to a private file outside the repository.
+It uses Bearer authentication. Its default model is `jev-1.13`, with a 30-second
 timeout.
 
 The client checks the question count, parses JSON responses, and verifies
