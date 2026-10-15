@@ -266,6 +266,14 @@ Put new tool configurations under `config/<tool>` and update the relevant
 installer. Read [Philosophy](docs/PHILOSOPHY.md) and [agent rules](AGENTS.md);
 background and rationale live in [Decisions](docs/DECISIONS.md).
 
+Run all Python tests together (use Python 3.11+ to include TOML parsing tests):
+
+```sh
+python3 -B -m unittest discover -s tests -v
+```
+
+On Windows, use `python` instead of `python3`.
+
 Dependency-checker tests (standard library only; use Python 3.11+ to include
 TOML parsing tests):
 
