@@ -3,6 +3,7 @@
 
 import argparse
 import errno
+import ipaddress
 import socket
 
 
@@ -13,15 +14,24 @@ def port_number(value):
     return number
 
 
+def socket_family(host):
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return socket.AF_INET
+    return socket.AF_INET6 if address.version == 6 else socket.AF_INET
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("ports", nargs="+", type=port_number)
-    parser.add_argument("--host", default="127.0.0.1", help="local IPv4 address to test")
+    parser.add_argument("--host", default="127.0.0.1", help="local IPv4 or IPv6 address to test")
     args = parser.parse_args()
 
     unavailable = False
+    family = socket_family(args.host)
     for port in args.ports:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        with socket.socket(family, socket.SOCK_STREAM) as sock:
             try:
                 sock.bind((args.host, port))
             except OSError as error:
