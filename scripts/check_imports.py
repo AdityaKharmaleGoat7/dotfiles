@@ -17,7 +17,7 @@ def main():
     for name in args.modules:
         try:
             importlib.import_module(name)
-        except Exception as error:
+        except (Exception, SystemExit) as error:
             failed = True
             print(f"FAIL {name}: {type(error).__name__}: {error}")
         else:
