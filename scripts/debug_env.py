@@ -4,16 +4,30 @@
 import importlib.metadata
 import os
 import platform
+import re
 import sys
 from pathlib import Path
 
 
+SENSITIVE_ENV_TOKENS = {
+    "TOKEN",
+    "SECRET",
+    "PASSWORD",
+    "PASSWD",
+    "KEY",
+    "CREDENTIAL",
+    "AUTH",
+    "COOKIE",
+    "PROXY",
+    "URL",
+    "DSN",
+    "CONNECTION",
+}
+
+
 def display_env(name, value):
-    sensitive = (
-        "TOKEN", "SECRET", "PASSWORD", "PASSWD", "KEY", "CREDENTIAL",
-        "AUTH", "COOKIE", "PROXY", "URL", "DSN", "CONNECTION",
-    )
-    if any(part in name.upper() for part in sensitive):
+    tokens = {token for token in re.split(r"[^A-Z0-9]+", name.upper()) if token}
+    if tokens & SENSITIVE_ENV_TOKENS:
         return "<redacted>"
     return value
 
