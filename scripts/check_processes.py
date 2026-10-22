@@ -8,6 +8,13 @@ import os
 import subprocess
 
 
+def search_term(value):
+    term = value.strip()
+    if not term:
+        raise argparse.ArgumentTypeError("search term must not be empty")
+    return term
+
+
 def processes():
     if os.name == "nt":
         output = subprocess.run(
@@ -28,7 +35,7 @@ def processes():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("terms", nargs="+", help="case-insensitive process search terms")
+    parser.add_argument("terms", nargs="+", type=search_term, help="case-insensitive process search terms")
     args = parser.parse_args()
 
     matches = []
