@@ -14,4 +14,8 @@
 
 The official email asked runners to arrive before their category cutoff, confirm their bib number, queue at the matching reception line, and give their name and bib number to receive the bib and safety pins.
 
-This entry records only details stated in the official event email.
+### Event-day note
+
+The organizers confirmed that the October 24–25 Osaka event would go ahead as scheduled even though a typhoon was approaching.
+
+This entry records only details stated in the official event emails.
